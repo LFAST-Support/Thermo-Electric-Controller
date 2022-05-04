@@ -2,6 +2,7 @@
   Implementation of the TEC control software
 */
 #include "ThermoElectricController.h"
+#include "ThermoElectricGlobal.h"
 
 ThermoElectricController::ThermoElectricController() {
 }
@@ -12,7 +13,7 @@ int ThermoElectricController::begin( const int dirP, const int pwmP, const int t
     @details   Sets pin definitions, and initializes the variables of the class.
     @param[in] dirPin Defines which pin controls direction
     @param[in] pwmPin Defines which pin provides PWM pulses to the TEC
-    @param[in] pwmPin Defines which pin provides PWM pulses to the TEC
+    @param[in] thermistorP Defines which pin provides PWM pulses to the TEC
     @return    void 
   */
   
@@ -87,4 +88,48 @@ int  ThermoElectricController::getPower( void ) {
 
 bool  ThermoElectricController::getDirection( void ) {
   return dir;
+}
+
+
+bool hardwareID_init(){
+
+  pinMode(ID_PIN_0,INPUT_PULLUP);
+  pinMode(ID_PIN_1,INPUT_PULLUP);
+  pinMode(ID_PIN_2,INPUT_PULLUP);
+  pinMode(ID_PIN_3,INPUT_PULLUP);
+  pinMode(ID_PIN_4,INPUT_PULLUP);
+
+  // Wait for pin inputs to settle
+  delay(100);
+
+  // Read the jumpers.  This must only be done once, even if they produce an
+  // invalid ID, in order to ensure that they are correctly read.
+  // The pins have inverted sense, so the raw values have been reversed.
+  int pin0 = digitalRead(ID_PIN_0) ? 0 : 1;
+  int pin1 = digitalRead(ID_PIN_1) ? 0 : 1;
+  int pin2 = digitalRead(ID_PIN_2) ? 0 : 1;
+  int pin3 = digitalRead(ID_PIN_3) ? 0 : 1;
+  int pin4 = digitalRead(ID_PIN_4) ? 0 : 1;
+
+  hardware_id = ( pin4 << 4 ) +
+                ( pin3 << 3 ) +
+                ( pin2 << 2 ) +
+                ( pin1 << 1 ) +
+                ( pin0 << 0 );
+
+  delay(10000);
+  DebugPrintNoEOL("Hardware ID = ");
+  DebugPrint(hardware_id);
+
+  // Make sure ID is valid
+  if(hardware_id < 0 || hardware_id > MAX_BOARD_ID){
+      DebugPrint("invalid board ID detected, check jumpers");
+      return false;
+  }
+
+  return true; //Success
+}
+
+int get_hardware_id() {
+  return hardware_id;
 }

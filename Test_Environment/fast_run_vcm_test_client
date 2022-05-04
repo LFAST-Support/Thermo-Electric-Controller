@@ -1,0 +1,35 @@
+#!/bin/bash
+# fast_run_vcm_test_client - Run the VCM Test Client as part of the full Casting
+#                            Furnace simulator, issuing Set DAC messages at a
+#                            high rate
+#
+# Usage:
+#     fast_run_vcm_test_client [MODULE_ID]
+# where:
+#     MODULE_ID is the module to control (default: 3)
+
+if [ "$#" == "0" ]; then
+    MODULE_ID=3
+else
+    MODULE_ID="$1"
+fi
+
+# Change to the directory containing the Test Client
+//cd ~/Casting/soml_cf_vcm/test_environment
+
+while true; do
+    for (( i=10; i<100; i++ )); do
+        if [ $i -lt 10 ]; then
+            DAC_VOLTAGE="0.0$i"
+        else
+            DAC_VOLTAGE="0.$i"
+        fi
+
+        # Run the command
+        python3 client.py module=$MODULE_ID dac=all=$DAC_VOLTAGE exit
+
+        sleep 6
+    done
+done
+
+exit 0

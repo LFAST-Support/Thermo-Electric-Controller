@@ -1,0 +1,26 @@
+#!/bin/bash
+# run_vcm_test_client - Run the VCM Test Client as part of the full Casting
+#                       Furnace simulator
+#
+# Usage:
+#     run_vcm_test_client [MODULE_ID]
+# where:
+#     MODULE_ID is the module to control (default: 3)
+
+if [ "$#" == "0" ]; then
+    MODULE_ID=3
+else
+    MODULE_ID="$1"
+fi
+
+# Change to the directory containing the Test Client
+cd ~/Casting/soml_cf_vcm/test_environment
+
+# Set the voltage to the minute value of the system time
+NOW_MINUTE=`date +%M`
+DAC_VOLTAGE="0.$NOW_MINUTE"
+
+# Run the command
+python3 test_client.py module=$MODULE_ID dac=all=$DAC_VOLTAGE exit
+
+exit 0

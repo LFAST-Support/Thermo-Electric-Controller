@@ -11,6 +11,7 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
 
 #include "Arduino.h"
 #include "ThermoElectricController.h"
+#include "ThermoElectricGlobal.h"
 
 /******************
  * Begin Configure

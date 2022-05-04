@@ -38,4 +38,7 @@ class ThermoElectricController {
   int thermistorResistor;
 };
 
+bool hardwareID_init();
+int get_hardware_id();
+
 #endif
