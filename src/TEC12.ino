@@ -42,8 +42,8 @@ struct tec_pins pins[] =
    {30,7,16},
    {31,8,15},
    {32,9,14},
-   {37,10,17},
-   {36,11,16}
+   {37,10,17}, //repeated thermistor pin, use 41 instead?
+   {36,11,16} // repeated thermistor pin, use 40 instead?
   };
 
  ******************
@@ -53,8 +53,8 @@ struct tec_pins pins[] =
 ThermoElectricController TEC[NUM_TEC];
 
 void setup() {
-   pinMode(LED_BUILTIN, OUTPUT);
- Serial.begin(115200);
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(115200);
   delay(1000);
   Serial.println("Configuring the TECs");
   // setup the TECs
@@ -65,6 +65,7 @@ void setup() {
   Serial.print("Configured "); Serial.print(NUM_TEC); Serial.println(" TEC current controllers");
   delay(1000);
 }
+
 int blink = 0; 
 
 void loop() {

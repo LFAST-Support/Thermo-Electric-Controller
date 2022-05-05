@@ -334,8 +334,7 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
 
         // Now handle the metric
         int64_t alias = metric_spec->alias;
-        uint8_t NUM_TEC = 0;
-        ThermoElectricController TEC[NUM_TEC];
+
         switch(alias){
         case NMA_Reboot:
             if(metric->value.boolean_value){
@@ -401,16 +400,19 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             }
             DebugPrint("Calibration data has been permanently erased.");            
             break;
-        case NMA_Channel0 ... NMA_Channel11:
-            int channel = alias - NMA_Channel0;
+        case NMA_Channel0 ... NMA_Channel11: {
+            uint8_t NUM_TEC = 0;
+            ThermoElectricController TEC[NUM_TEC];
+            int channel;
+            channel = alias - NMA_Channel0;
             if(channel >= 0 && channel < NUMBER_OF_CHANNELS){
                 m_Channel[channel] = metric->value.float_value;
-                //### Should voltage be limited to min/max here?
-                //### It will be limited by set_dac(), but should we report the
+                //### Should value be limited to min/max here?
+                //### It will be limited by set_channel(), but should we report the
                 //### commanded (invalid) voltage or the actual voltage set?
                 TEC[channel].setPower(m_Channel[channel]);
 
-                // Publish this DAC value, even if it hasn't changed.  The
+                // Publish this TEC value, even if it hasn't changed.  The
                 // timestamp should show when the value was last set, not when
                 // it last changed.
                 if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel[channel]))
@@ -418,6 +420,7 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             }
             Serial.printf("Channel %d set to value %0.2f ", channel, m_Channel[channel]);            
             break;
+        }
         default:
             DebugPrintNoEOL("Unhandled Node metric alias: ");
             DebugPrint(alias);

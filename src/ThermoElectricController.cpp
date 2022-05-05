@@ -4,6 +4,23 @@
 #include "ThermoElectricController.h"
 #include "ThermoElectricGlobal.h"
 
+/*
+Resistance at 25 degrees C
+The beta coefficient of the thermistor (usually 3000-4000)
+*/
+#ifdef thermistor_10K
+    #define THERMISTORNOMINAL 10000
+    #define BCOEFFICIENT 2.514458134e-4 // = 1/3977, B = 3997 K
+#elif thermistor_2K 
+    #define THERMISTORNOMINAL 2200   
+    #define BCOEFFICIENT 2.544529262e-4 // = 1/3930, B = 3930 K
+#else 
+    #error A thermistor value must be defined.
+#endif
+
+// temp. for nominal resistance (almost always 25 C = 298.15 K)
+#define TEMPERATURENOMINAL 298.15   
+
 ThermoElectricController::ThermoElectricController() {
 }
 
@@ -38,7 +55,7 @@ int ThermoElectricController::begin( const int dirP, const int pwmP, const int t
 
 void ThermoElectricController::setPwm( int power )
 {
-  int tmp = (int) ((float) power * 255.0)/100.0;// convert to 0-255 )
+  int tmp = (int) ((float) power * 255.0)/100.0;// convert to 0-255, negative values yield a negative result; < 0
     analogWrite( pwmPin,tmp); //
 }
 
@@ -67,7 +84,7 @@ int ThermoElectricController::setPower( const int power ) {
 // Need to read and average a bunch of these together to beat down the noise...
 //
 
-float  ThermoElectricController::getTemperature( void ) {
+float ThermoElectricController::getTemperature( void ) {
   // read the analog voltage
   int adcCounts = 0;
   //Serial.print("Getting Temperature from pin ");Serial.println( thermistorPin );
@@ -78,6 +95,18 @@ float  ThermoElectricController::getTemperature( void ) {
   // convert to voltage 
   float voltage = adcCounts * 3.3/4096.0;
   // convert to temperature
+  
+  /*
+  thermistance depends on order of voltage divider circuit.
+  10K Ohm resistor assumed
+  */
+  float thermistance = 10000 * (1 / ((3.3/voltage) - 1));  //If voltage drop accross control resistor occurs first.
+  //float thermistance = 10000 * ((3.3/voltage) - 1); //If voltage drop accross thermistor occurs first.
+  /*
+  Simplified B parameter Steinhart-Hart equation.
+  B coefficient for thermistor:  TT7-10KC3-11
+  */
+  temperature = (1/((1/TEMPERATURENOMINAL) + BCOEFFICIENT*log(thermistance/THERMISTORNOMINAL))) - 273.15;
   temperature = voltage * 1.0;  // FIXME 
   return temperature;
 }
