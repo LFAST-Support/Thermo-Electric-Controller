@@ -16,7 +16,6 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
 /******************
  * Begin Configure
  ******************/
-const uint8_t NUM_TEC = 2; // 12 TEC
 
 struct tec_pins {
   int dirPin;
@@ -42,15 +41,19 @@ struct tec_pins pins[] =
    {30,7,16},
    {31,8,15},
    {32,9,14},
-   {37,10,17}, //repeated thermistor pin, use 41 instead?
-   {36,11,16} // repeated thermistor pin, use 40 instead?
+   {37,10,41},
+   {36,11,40}  
   };
 
+  23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 41, 40
  ******************
  * End Configure
  ******************/
-
 ThermoElectricController TEC[NUM_TEC];
+Thermistor therm[NUM_TEC];
+
+ThermoElectricController* TEC_ptr = TEC;
+
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -59,12 +62,20 @@ void setup() {
   Serial.println("Configuring the TECs");
   // setup the TECs
   delay(10000);
-  for (int i = 0; i < NUM_TEC; i++ )
+  for (int i = 0; i < NUM_TEC; i++ ) {
     TEC[i].begin( pins[i].dirPin, pins[i].pwmPin, pins[i].thermistorPin );
-  
+  }
+
+  //Load cal data if thermistors have been calibrated.
+  if (EEPROM.read(0) == 0x01) {
+    therm->load_cal_data();
+  }
   Serial.print("Configured "); Serial.print(NUM_TEC); Serial.println(" TEC current controllers");
   delay(1000);
 }
+
+
+
 
 int blink = 0; 
 
@@ -79,6 +90,6 @@ void loop() {
     }
     Serial.println();
     delay(1000);
-  digitalWrite(LED_BUILTIN, (blink++ & 0x01)); 
+    digitalWrite(LED_BUILTIN, (blink++ & 0x01)); 
   }
 }

@@ -17,15 +17,13 @@ The beta coefficient of the thermistor (usually 3000-4000)
 #else 
     #error A thermistor value must be defined.
 #endif
-
 // temp. for nominal resistance (almost always 25 C = 298.15 K)
 #define TEMPERATURENOMINAL 298.15   
 
-ThermoElectricController::ThermoElectricController() {
-}
 
-int ThermoElectricController::begin( const int dirP, const int pwmP, const int thermistorP )
-{
+ThermoElectricController::ThermoElectricController() {}
+
+int ThermoElectricController::begin( const int dirP, const int pwmP, const int thermistorP ) {
   /*! @brief     Initializes the contents of the class
     @details   Sets pin definitions, and initializes the variables of the class.
     @param[in] dirPin Defines which pin controls direction
@@ -38,7 +36,7 @@ int ThermoElectricController::begin( const int dirP, const int pwmP, const int t
   pwmPin = pwmP;
   thermistorPin = thermistorP;
   temperature = -40.0;
-  thermistor = 0.0 ;
+  raw_data = 0.0 ;
   pwmPct = 0;
   dir = 0;
   thermistorResistor = 10000;
@@ -49,21 +47,19 @@ int ThermoElectricController::begin( const int dirP, const int pwmP, const int t
   // set up the PWM parameters for the PWM pin.
   analogWriteFrequency(pwmPin, TEC_PWM_FREQ);
   analogReadResolution(12);
+  
   return 0;
 }
 
-
-void ThermoElectricController::setPwm( int power )
-{
+void ThermoElectricController::setPwm( int power ) {
   int tmp = (int) ((float) power * 255.0)/100.0;// convert to 0-255, negative values yield a negative result; < 0
-    analogWrite( pwmPin,tmp); //
+    analogWrite( pwmPin,tmp ); //
 }
 
 int ThermoElectricController::setPower( const int power ) {
-  
   if( power > 100 || power < -100 )
     return -1;
- Serial.print("Setting Power to ");Serial.println( power ); 
+  Serial.print("Setting Power to ");Serial.println( power ); 
   // set direction
   if(((power < 0) && (pwmPct >= 0)) ||
      ((power > 0) && (pwmPct <= 0)))
@@ -76,38 +72,34 @@ int ThermoElectricController::setPower( const int power ) {
   // Set duty cycle
   setPwm(power);
   pwmPct = power; // save the power setting
-  return 0;
-  
+  return 0; 
 }
 
 // 0 to 3.3 volts, 12 bits resolution
 // Need to read and average a bunch of these together to beat down the noise...
-//
-
-float ThermoElectricController::getTemperature( void ) {
+float ThermoElectricController::getTemperature() {
   // read the analog voltage
   int adcCounts = 0;
   //Serial.print("Getting Temperature from pin ");Serial.println( thermistorPin );
-  for(int i = 0; i < 16; i++)
+  for(int i = 0; i < 16; i++) {
     adcCounts += analogRead(thermistorPin);
-  adcCounts = adcCounts >> 4;  // divide by 16
+  }
+  raw_data = adcCounts >> 4;  // divide by 16
   
   // convert to voltage 
-  float voltage = adcCounts * 3.3/4096.0;
+  float voltage = raw_data * 3.3/4096.0;
   // convert to temperature
   
   /*
-  thermistance depends on order of voltage divider circuit.
+  thermistance depends on order of resistors in voltage divider circuitry.
   10K Ohm resistor assumed
   */
-  float thermistance = 10000 * (1 / ((3.3/voltage) - 1));  //If voltage drop accross control resistor occurs first.
-  //float thermistance = 10000 * ((3.3/voltage) - 1); //If voltage drop accross thermistor occurs first.
+  float thermistance = 10000 * ((3.3/voltage) - 1); //If voltage drop accross thermistor occurs first.
   /*
   Simplified B parameter Steinhart-Hart equation.
   B coefficient for thermistor:  TT7-10KC3-11
   */
   temperature = (1/((1/TEMPERATURENOMINAL) + BCOEFFICIENT*log(thermistance/THERMISTORNOMINAL))) - 273.15;
-  temperature = voltage * 1.0;  // FIXME 
   return temperature;
 }
 
@@ -118,6 +110,94 @@ int  ThermoElectricController::getPower( void ) {
 bool  ThermoElectricController::getDirection( void ) {
   return dir;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool Thermistor::calibrate( float ref_temp, int tempNum, const int thermistor ) {
+  Serial.printf("Set temp is %0.2f, calibration begun.\n", ref_temp); 
+  extern ThermoElectricController TEC[NUM_TEC];
+  extern Thermistor therm[NUM_TEC];  
+  eeAddr = 1;
+
+  if (tempNum == 1) {
+    Serial.println("Cal data 1 INW");
+    ref_Low = ref_temp;
+    EEPROM.put(eeAddr, ref_Low);
+    eeAddr += sizeof(ref_Low); 
+    for (int i = 0; i < NUM_TEC; i++) { 
+      therm[i].raw_Low = TEC[i].getTemperature();
+      EEPROM.put(eeAddr, raw_Low);
+      eeAddr += sizeof(raw_Low);
+    }
+    return false;
+  } 
+  else if (tempNum == 2) {
+    Serial.println("Cal data 2 INW");
+    ref_High = ref_temp;
+    EEPROM.put(eeAddr, ref_High);
+    eeAddr += sizeof(ref_High); 
+    for (int i = 0; i < NUM_TEC; i++) { 
+      therm[i].raw_High = TEC[i].getTemperature();
+      EEPROM.put(eeAddr, raw_High);
+      eeAddr += sizeof(raw_High); 
+      therm[i].calibrated = true;
+    }
+    EEPROM.write(0, 0x01);
+    Serial.println("Calibration complete.");
+  } 
+  return true;  
+}
+float Thermistor::getRaw_low() {
+  return raw_Low;
+}
+float Thermistor::getRaw_high() {
+  return raw_High;
+}
+void Thermistor::setRaw_low(float low) {
+  raw_Low = low;
+}
+void Thermistor::setRaw_high(float high) {
+  raw_High = high;
+}
+bool Thermistor::load_cal_data() {
+  extern Thermistor therm[NUM_TEC];
+  float temp_data;
+  eeAddr = 1;
+
+  EEPROM.get(eeAddr, ref_Low);
+  eeAddr += sizeof(ref_Low); 
+  for (int i = 0; i < NUM_TEC; i++ ) {
+    EEPROM.get(eeAddr, temp_data);
+    therm[i].setRaw_low(temp_data);
+    eeAddr += sizeof(temp_data); 
+  }
+  EEPROM.get(eeAddr, ref_High);
+  eeAddr += sizeof(ref_High); 
+  for (int i = 0; i < NUM_TEC; i++ ) {
+    EEPROM.get(eeAddr, temp_data);
+    therm[i].setRaw_high(temp_data);
+    eeAddr += sizeof(temp_data); 
+  }
+  return true;
+}
+
+
+
+
+
 
 
 bool hardwareID_init(){

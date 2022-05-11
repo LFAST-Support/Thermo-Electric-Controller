@@ -364,9 +364,6 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             if(m_nodeNextServer)
                 DebugPrint("NextServer command received");
             break;
-        case NMA_CalibrationStatus:
-            DebugPrint("Calibration status requested.");            
-            break;
         case NMA_CalibrationTemp1:
             m_nodeCalibrationINW = metric->value.boolean_value;
             m_calTemp1 = metric->value.float_value;

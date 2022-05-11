@@ -587,7 +587,7 @@ def reboot_module():
 def reboot_button_handler():
     reboot_module()
 
-# Add a metric to the payload to set the voltage on a DAC
+# Add a metric to the payload to set the voltage on a TEC
 def add_cal_temp_metric( payload, cal_temp, tempNum ):
     #if cal_temp < 0 or cal_temp >= 100:
     #    report( f'Calibration temperature out of range, must be 0 to 100 degrees Celsius.', error = True, always = True )
@@ -632,10 +632,10 @@ def send_cal_command(temp1, temp2, clear):
         if send_simple_node_command( 'Node Control/Calibrated?', True ):
             report( 'Module calibration status requested', always = True )
 
-# Add a metric to the payload to set the voltage on a DAC
+# Add a metric to the payload to set the voltage on a TEC
 def add_channel_metric( payload, channel_number, value ):
     if isinstance( channel_number, str ) and channel_number.lower() == 'all':
-        # Special flag indicating all DACs
+        # Special flag indicating all TECs
         for channel_number in range( NUM_CHANNELS ):
             if not add_channel_metric( payload, channel_number, voltage ):
                 return False
@@ -661,7 +661,7 @@ def add_channel_metric( payload, channel_number, value ):
     return True
 
 
-# Ask the node to set the voltage on one or more DACs
+# Ask the node to set the voltage on one or more TECs
 def set_channel( channel_number, value ):
     payload = get_cmd_payload()
     if not add_channel_metric( payload, channel_number, value ):
@@ -676,7 +676,7 @@ def set_channel( channel_number, value ):
 # Main program starts here
 
 # Set the default option values
-option_no_GUI = True
+option_no_GUI = False
 option_broker_URL = DEFAULT_BROKER_URL
 option_broker_port = DEFAULT_BROKER_PORT
 option_module_id = DEFAULT_MODULE_ID
@@ -688,6 +688,9 @@ option_do_set_channel = False
 option_channel_number = 0
 option_channel_value = 0.0
 
+NUM_TEC = 12
+MIN_TEC_VALUE = -100
+MAX_TEC_VALUE = 100
 # Parse the command-line options
 for arg in sys.argv[ 1: ]:
     lower_arg = arg.lower()
@@ -752,6 +755,29 @@ if option_do_exit:
     # Quit after issuing command-line commands (if any)
     close_thread = True
     sys.exit()
+
+def change_module_button_handler():
+    module_id = change_module_input.text()
+    if change_module( module_id, client ):
+        main_window.setWindowTitle( f'VCM Client v{APP_VERSION} - Module {module_id}' )
+        show_data_on_GUI()
+
+def reboot_button_handler():
+    reboot_module()
+
+def log_button_handler():
+    global option_log
+    option_log = not option_log
+    if option_log:
+        report( 'Logging is on', always = True )
+        log_button.setText( 'Toggle Logging Off' )
+    else:
+        report( 'Logging is off', always = True )
+        log_button.setText( 'Toggle Logging On' )
+
+def set_TEC_button_handler():
+    set_channel( set_TEC_number_input.text(), set_TEC_voltage_input.text() )
+
 
 # Select which UI to use
 if option_no_GUI:
@@ -854,3 +880,124 @@ if option_no_GUI:
             print( f'Note: Only one command can be specified on the command-line.' )
         else:
             report( 'Unrecognized command', error = True, always = True )
+
+else:
+    # Set up and run the GUI
+
+    # This package isn't available on all platforms, so only attempt to load it
+    # if running the GUI
+    from PySide6.QtCore import *
+    from PySide6.QtWidgets import *
+    from PySide6.QtGui import *
+
+    # Return an hbox with the specified widget centered horizontally within it
+    def center_widget( widget ):
+        h_box = QWidget()
+        h_box_layout = QHBoxLayout()
+        h_box.setLayout( h_box_layout )
+        h_box_layout.addWidget( QLabel( '' ), 10 )
+        h_box_layout.addWidget( widget, 0 )
+        h_box_layout.addWidget( QLabel( '' ), 10 )
+        return h_box
+
+    app = QApplication( [] )
+    main_window = QMainWindow()
+    main_window.setWindowTitle( f'TEC Client v{APP_VERSION} - Module {option_module_id}' )
+
+    window = QWidget()
+    v_box_layout = QVBoxLayout()
+    v_box_layout.setSpacing( 0 )
+    window.setLayout( v_box_layout )
+
+    main_window.setCentralWidget( window )
+
+    # The Change Module button
+    change_module_controls = QWidget()
+    h_box_layout = QHBoxLayout()
+    change_module_controls.setLayout( h_box_layout )
+    change_module_input = QLineEdit( f'{option_module_id}' )
+    only_int = QIntValidator()
+    change_module_input.setValidator( only_int )
+    h_box_layout.addWidget( change_module_input )
+    change_module_button = QPushButton( 'Change Module' )
+    change_module_button.clicked.connect( change_module_button_handler )
+    h_box_layout.addWidget( change_module_button )
+    v_box_layout.addWidget( center_widget( change_module_controls ) )
+
+    # The Reboot button
+    reboot_button = QPushButton( 'Reboot' )
+    reboot_button.clicked.connect( reboot_button_handler )
+    v_box_layout.addWidget( center_widget( reboot_button ) )
+
+    # Data received from the module
+    outputs = QWidget()
+    output_grid = QGridLayout()
+    outputs.setLayout( output_grid )
+
+    # Node data
+    output_grid.addWidget( QLabel( 'Name' ),      0, 0 )
+    output_grid.addWidget( QLabel( 'Timestamp' ), 0, 1 )
+    output_grid.addWidget( QLabel( 'Value' ),     0, 2 )
+    name_outputs  = QLabel( '' )
+    time_outputs  = QLabel( '' )
+    value_outputs = QLabel( '' )
+    output_grid.addWidget( name_outputs,  1, 0 )
+    output_grid.addWidget( time_outputs,  1, 1 )
+    output_grid.addWidget( value_outputs, 1, 2 )
+
+
+    v_box_layout.addWidget( outputs )
+
+    # The logging controls
+    log_button = QPushButton( '' )
+    log_button.clicked.connect( log_button_handler )
+    v_box_layout.addWidget( center_widget( log_button ) )
+    if option_log:
+        log_button.setText( 'Toggle Logging Off' )
+    else:
+        log_button.setText( 'Toggle Logging On' )
+
+    # Controls to set the TEC vALUES
+    set_TEC_label = QLabel( f'Select TEC and value to set' )
+    v_box_layout.addWidget( center_widget( set_TEC_label ) )
+    set_TEC_controls = QWidget()
+    set_TEC_layout = QGridLayout()
+    set_TEC_controls.setLayout( set_TEC_layout )
+
+    # TEC Number entry
+    set_TEC_layout.addWidget( QLabel( 'TEC Number' ),   0, 0 )
+    set_TEC_number_input = QLineEdit( '' )
+    set_TEC_layout.addWidget( set_TEC_number_input,     0, 1 )
+    set_TEC_layout.addWidget( QLabel( f'(0-{NUM_TEC - 1}, or "all" for all TECs)' ), 0, 2 )
+
+    # TEC Voltage entry
+    set_TEC_layout.addWidget( QLabel( 'TEC Value' ),  1, 0 )
+    set_TEC_voltage_input = QLineEdit( '1.0' )
+    set_TEC_layout.addWidget( set_TEC_voltage_input,    1, 1 )
+    set_TEC_layout.addWidget( QLabel( f'({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f}, or "random")' ), 1, 2 )
+
+    # Set TEC button
+    set_TEC_button = QPushButton( 'Set TEC' )
+    set_TEC_button.clicked.connect( set_TEC_button_handler )
+    set_TEC_layout.addWidget( set_TEC_button,           2, 1 )
+    v_box_layout.addWidget( center_widget( set_TEC_controls ) )
+
+    # The diagnostic text view
+    diagnostic_text = QPlainTextEdit()
+    diagnostic_text.setReadOnly( True )
+    diagnostic_text.setMaximumBlockCount( 500 )
+    normal_format = diagnostic_text.currentCharFormat()
+    error_format = QTextCharFormat()
+    error_format.setForeground( Qt.red )
+    v_box_layout.addWidget( diagnostic_text )
+
+    gui_controls_created = True
+
+    # Populate the data widgets with the full list of metrics
+    display_metrics( None, None, False )
+
+    # Run the GUI
+    main_window.show()
+    exit_code = app.exec()
+    close_thread = True
+    sys.exit( exit_code )
