@@ -52,7 +52,7 @@ int ThermoElectricController::begin( const int dirP, const int pwmP, const int t
 }
 
 void ThermoElectricController::setPwm( int power ) {
-  int tmp = (int) ((float) power * 255.0)/100.0;// convert to 0-255, negative values yield a negative result; < 0
+  int tmp = abs ((int) ((float) power * 255.0)/100.0);// convert to 0-255, negative values yield a negative result; < 0
     analogWrite( pwmPin,tmp ); //
 }
 
@@ -77,7 +77,7 @@ int ThermoElectricController::setPower( const int power ) {
 
 // 0 to 3.3 volts, 12 bits resolution
 // Need to read and average a bunch of these together to beat down the noise...
-float ThermoElectricController::getTemperature() {
+float ThermoElectricController::get_Raw_Temperature() {
   // read the analog voltage
   int adcCounts = 0;
   //Serial.print("Getting Temperature from pin ");Serial.println( thermistorPin );
@@ -100,6 +100,14 @@ float ThermoElectricController::getTemperature() {
   B coefficient for thermistor:  TT7-10KC3-11
   */
   temperature = (1/((1/TEMPERATURENOMINAL) + BCOEFFICIENT*log(thermistance/THERMISTORNOMINAL))) - 273.15;
+  return temperature;
+}
+
+float ThermoElectricController::get_Calibrated_Temp(int i) {
+  extern Thermistor therm[NUM_TEC];
+
+  temperature = (((get_Raw_Temperature() - therm[i].getRaw_low()) * (ref_High - ref_Low)) / 
+                 (therm[i].getRaw_high() - therm[i].getRaw_low()) + ref_Low);
   return temperature;
 }
 
@@ -126,7 +134,7 @@ bool  ThermoElectricController::getDirection( void ) {
 
 
 
-bool Thermistor::calibrate( float ref_temp, int tempNum, const int thermistor ) {
+bool Thermistor::calibrate( float ref_temp, int tempNum ) {
   Serial.printf("Set temp is %0.2f, calibration begun.\n", ref_temp); 
   extern ThermoElectricController TEC[NUM_TEC];
   extern Thermistor therm[NUM_TEC];  
@@ -138,7 +146,7 @@ bool Thermistor::calibrate( float ref_temp, int tempNum, const int thermistor ) 
     EEPROM.put(eeAddr, ref_Low);
     eeAddr += sizeof(ref_Low); 
     for (int i = 0; i < NUM_TEC; i++) { 
-      therm[i].raw_Low = TEC[i].getTemperature();
+      therm[i].raw_Low = TEC[i].get_Raw_Temperature();
       EEPROM.put(eeAddr, raw_Low);
       eeAddr += sizeof(raw_Low);
     }
@@ -150,7 +158,7 @@ bool Thermistor::calibrate( float ref_temp, int tempNum, const int thermistor ) 
     EEPROM.put(eeAddr, ref_High);
     eeAddr += sizeof(ref_High); 
     for (int i = 0; i < NUM_TEC; i++) { 
-      therm[i].raw_High = TEC[i].getTemperature();
+      therm[i].raw_High = TEC[i].get_Raw_Temperature();
       EEPROM.put(eeAddr, raw_High);
       eeAddr += sizeof(raw_High); 
       therm[i].calibrated = true;
@@ -160,18 +168,23 @@ bool Thermistor::calibrate( float ref_temp, int tempNum, const int thermistor ) 
   } 
   return true;  
 }
+
 float Thermistor::getRaw_low() {
   return raw_Low;
 }
+
 float Thermistor::getRaw_high() {
   return raw_High;
 }
+
 void Thermistor::setRaw_low(float low) {
   raw_Low = low;
 }
+
 void Thermistor::setRaw_high(float high) {
   raw_High = high;
 }
+
 bool Thermistor::load_cal_data() {
   extern Thermistor therm[NUM_TEC];
   float temp_data;

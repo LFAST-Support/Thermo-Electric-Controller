@@ -24,7 +24,8 @@ class ThermoElectricController {
   
   int setPower( const int percent );
   //void setDirection( const bool direction );
-  float getTemperature();
+  float get_Raw_Temperature();
+  float get_Calibrated_Temp(int i);
   int getPower();
   bool getDirection();
  protected:
@@ -43,7 +44,7 @@ class ThermoElectricController {
 
 class Thermistor: public ThermoElectricController {
   public:
-    bool calibrate(float ref_temp, int tempNum, const int thermistor);
+    bool calibrate(float ref_temp, int tempNum);
     bool load_cal_data();
     bool clear_calibration();
     float getRaw_low();
@@ -61,7 +62,5 @@ class Thermistor: public ThermoElectricController {
 
 bool hardwareID_init();
 int get_hardware_id();
-
-
 
 #endif

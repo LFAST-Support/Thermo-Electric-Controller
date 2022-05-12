@@ -74,7 +74,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Sparkplug settings
 #define GROUP_ID              "VI"              // This node's group ID
-#define NODE_ID_TEMPLATE      "TECx"            // Template for this node's node ID
+#define NODE_I_tempLATE      "TECx"            // Template for this node's node ID
 #define NODE_ID_TOKEN         'x'               // Character to be replaced with module ID
 
 /*
@@ -92,11 +92,11 @@ static EthernetClient enet[NUM_BROKERS];
 static PubSubClient m_broker[NUM_BROKERS];
 
 // Sparkplug node and topic names
-static String node_id        = NODE_ID_TEMPLATE;
-static String nodeBirthTopic = NODE_TOPIC(NBIRTH_MESSAGE_TYPE, NODE_ID_TEMPLATE);
-static String nodeDeathTopic = NODE_TOPIC(NDEATH_MESSAGE_TYPE, NODE_ID_TEMPLATE);
-static String nodeDataTopic  = NODE_TOPIC(NDATA_MESSAGE_TYPE,  NODE_ID_TEMPLATE);
-static String nodeCmdTopic   = NODE_TOPIC(NCMD_MESSAGE_TYPE,   NODE_ID_TEMPLATE);
+static String node_id        = NODE_I_tempLATE;
+static String nodeBirthTopic = NODE_TOPIC(NBIRTH_MESSAGE_TYPE, NODE_I_tempLATE);
+static String nodeDeathTopic = NODE_TOPIC(NDEATH_MESSAGE_TYPE, NODE_I_tempLATE);
+static String nodeDataTopic  = NODE_TOPIC(NDATA_MESSAGE_TYPE,  NODE_I_tempLATE);
+static String nodeCmdTopic   = NODE_TOPIC(NCMD_MESSAGE_TYPE,   NODE_I_tempLATE);
 
 // These variables hold the last published value of each metric
 static uint64_t m_bdSeq[NUM_BROKERS]  = {0};  // Node birth/death sequence numbers
@@ -110,10 +110,11 @@ static uint64_t m_commsVersion        = COMMS_VERSION;
 static const char *m_firmwareVersion  = TEC_VERSION_COMPLETE;
 static float    m_calTemp1            = {0.0};
 static float    m_calTemp2            = {0.0};
-static float    m_calData[NUMBER_OF_CHANNELS] = {0.00};
-static const char *m_units            = "°C";// The user units
-static float    m_Channel[NUMBER_OF_CHANNELS] = {0.0};
-static float    m_ADC_temperature     = 0.0;
+static const char *m_units            = "/" ;// The user units
+static float m_Channel_pwr[NUMBER_OF_CHANNELS] = {0.00};
+static bool m_Channel_dir[NUMBER_OF_CHANNELS] = {false};
+static float m_Channel_temp[NUMBER_OF_CHANNELS] = {0.00};
+
 
 // Alias numbers for each of the node metrics
 enum NodeMetricAlias {
@@ -125,24 +126,46 @@ enum NodeMetricAlias {
     NMA_CalibrationStatus,
     NMA_CalibrationTemp1,
     NMA_CalibrationTemp2,
-    NMA_CalibrationData,
     NMA_CalibrationINW,
     NMA_CommsVersion,
     NMA_FirmwareVersion,
     NMA_Units,
-    NMA_Channel0,
-    NMA_Channel1,
-    NMA_Channel2,
-    NMA_Channel3,
-    NMA_Channel4,
-    NMA_Channel5,
-    NMA_Channel6,
-    NMA_Channel7,
-    NMA_Channel8,
-    NMA_Channel9,
-    NMA_Channel10,
-    NMA_Channel11,
-    NMA_ADC_Temperature,
+    NMA_Channel0_pwr,
+    NMA_Channel1_pwr,
+    NMA_Channel2_pwr,
+    NMA_Channel3_pwr,
+    NMA_Channel4_pwr,
+    NMA_Channel5_pwr,
+    NMA_Channel6_pwr,
+    NMA_Channel7_pwr,
+    NMA_Channel8_pwr,
+    NMA_Channel9_pwr,
+    NMA_Channel10_pwr,
+    NMA_Channel11_pwr,
+    NMA_Channel0_dir,
+    NMA_Channel1_dir,
+    NMA_Channel2_dir,
+    NMA_Channel3_dir,
+    NMA_Channel4_dir,
+    NMA_Channel5_dir,
+    NMA_Channel6_dir,
+    NMA_Channel7_dir,
+    NMA_Channel8_dir,
+    NMA_Channel9_dir,
+    NMA_Channel10_dir,
+    NMA_Channel11_dir,
+    NMA_Channel0_temp,
+    NMA_Channel1_temp,
+    NMA_Channel2_temp,
+    NMA_Channel3_temp,
+    NMA_Channel4_temp,
+    NMA_Channel5_temp,
+    NMA_Channel6_temp,
+    NMA_Channel7_temp,
+    NMA_Channel8_temp,
+    NMA_Channel9_temp,
+    NMA_Channel10_temp,
+    NMA_Channel11_temp,
     EndNodeMetricAlias
 };
 
@@ -156,33 +179,54 @@ static MetricSpec bdseqMetrics[NUM_BROKERS][NUM_ELEM(bdseqMetricsTemplate)];
 
 // All node metrics
 static MetricSpec NodeMetrics[] = {
-    {"Node Control/Reboot",                      NMA_Reboot,             true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeReboot,         false, 0},
-    {"Node Control/Rebirth",                     NMA_Rebirth,            true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeRebirth,        false, 0},
-    {"Node Control/Next Server",                 NMA_NextServer,         true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeNextServer,     false, 0},
-    {"Node Control/Calibration INW",             NMA_CalibrationINW,     true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrationINW, false, 0},
-    {"Node Control/Clear Cal Data",              NMA_ClearCal,           true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeClearCal,       false, 0},
-    {"Properties/Calibration Status",            NMA_CalibrationStatus,  true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrated,     false, 0},
-    {"Node Control/Calibration Temperature 1",   NMA_CalibrationTemp1,   true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp1,           false, 0},        
-    {"Node Control/Calibration Temperature 2",   NMA_CalibrationTemp2,   true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp2,           false, 0},    
-    {"Properties/Communications Version",        NMA_CommsVersion,       false, METRIC_DATA_TYPE_INT64,   &m_commsVersion,       false, 0},
-    {"Properties/Firmware Version",              NMA_FirmwareVersion,    false, METRIC_DATA_TYPE_STRING,  &m_firmwareVersion,    false, 0},
-    {"Properties/Units",                         NMA_Units,              false, METRIC_DATA_TYPE_STRING,  &m_units,              false, 0},
-    {"Outputs/Calibration Data",                 NMA_CalibrationData,    false, METRIC_DATA_TYPE_FLOAT,   &m_calData[0],         false, 0},
-    {"Oututs/Channel0",                          NMA_Channel0,       false, METRIC_DATA_TYPE_FLOAT,    &m_Channel[0],     false, 0},
-    {"Outputs/Channel1",                         NMA_Channel1,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[1],      false, 0},
-    {"Outputs/Channel2",                         NMA_Channel2,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[2],      false, 0},
-    {"Outputs/Channel3",                         NMA_Channel3,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[3],      false, 0},
-    {"Outputs/Channel4",                         NMA_Channel4,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[4],      false, 0},
-    {"Outputs/Channel5",                         NMA_Channel5,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[5],      false, 0},
-    {"Outputs/Channel6",                         NMA_Channel6,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[6],      false, 0},
-    {"Outputs/Channel7",                         NMA_Channel7,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[7],      false, 0},
-    {"Outputs/Channel8",                         NMA_Channel8,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[8],      false, 0},
-    {"Oututs/Channel9",                          NMA_Channel9,        false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[9],      false, 0},
-    {"Oututs/Channel10",                         NMA_Channel10,       false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[10],      false, 0},
-    {"Oututs/Channel11",                         NMA_Channel11,       false, METRIC_DATA_TYPE_FLOAT,   &m_Channel[11],     false, 0},
-    {"Inputs/ADC Internal Temperature",          NMA_ADC_Temperature,    false, METRIC_DATA_TYPE_FLOAT,   &m_ADC_temperature,    false, 0},
+    {"Node Control/Reboot",                      NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeReboot,             false, 0},
+    {"Node Control/Rebirth",                     NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeRebirth,            false, 0},
+    {"Node Control/Next Server",                 NMA_NextServer,             true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeNextServer,         false, 0},
+    {"Node Control/Calibration INW",             NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrationINW,     false, 0},
+    {"Node Control/Clear Cal Data",              NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeClearCal,           false, 0},
+    {"Properties/Calibration Status",            NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrated,         false, 0},
+    {"Node Control/Calibration Temperature 1",   NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp1,               false, 0},        
+    {"Node Control/Calibration Temperature 2",   NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp2,               false, 0},    
+    {"Properties/Communications Version",        NMA_CommsVersion,           false, METRIC_DATA_TYPE_INT64,   &m_commsVersion,           false, 0},
+    {"Properties/Firmware Version",              NMA_FirmwareVersion,        false, METRIC_DATA_TYPE_STRING,  &m_firmwareVersion,        false, 0},
+    {"Properties/Units",                         NMA_Units,                  false, METRIC_DATA_TYPE_STRING,  &m_units,                  false, 0},
+    {"Inputs/Power Channel0",                    NMA_Channel0_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[0],         false, 0},
+    {"Inputs/Power Channel1 ",                    NMA_Channel1_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[1],         false, 0},
+    {"Inputs/Power Channel2 ",                    NMA_Channel2_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[2],         false, 0},
+    {"Inputs/Power Channel3 ",                    NMA_Channel3_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[3],         false, 0},
+    {"Inputs/Power Channel4 ",                    NMA_Channel4_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[4],         false, 0},
+    {"Inputs/Power Channel5 ",                    NMA_Channel5_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[5],         false, 0},
+    {"Inputs/Power Channel6 ",                    NMA_Channel6_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[6],         false, 0},
+    {"Inputs/Power Channel7 ",                    NMA_Channel7_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[7],         false, 0},
+    {"Inputs/Power Channel8 ",                    NMA_Channel8_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[8],         false, 0},
+    {"Inputs/Power Channel9 ",                    NMA_Channel9_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[9],         false, 0},
+    {"Inputs/Power Channel10 ",                   NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[10],        false, 0},
+    {"Inputs/Power Channel11 ",                   NMA_Channel11_pwr,          true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[11],        false, 0},
+    {"Outputs/Direction Channel0",               NMA_Channel0_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[0],         false, 0},
+    {"Outputs/Direction Channel1",               NMA_Channel1_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[1],         false, 0},
+    {"Outputs/Direction Channel2",               NMA_Channel2_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[2],         false, 0},
+    {"Outputs/Direction Channel3",               NMA_Channel3_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[3],         false, 0},
+    {"Outputs/Direction Channel4",               NMA_Channel4_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[4],         false, 0},
+    {"Outputs/Direction Channel5",               NMA_Channel5_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[5],         false, 0},
+    {"Outputs/Direction Channel6",               NMA_Channel6_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[6],         false, 0},
+    {"Outputs/Direction Channel7",               NMA_Channel7_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[7],         false, 0},
+    {"Outputs/Direction Channel8",               NMA_Channel8_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[8],         false, 0},
+    {"Outputs/Direction Channel9",               NMA_Channel9_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[9],         false, 0},
+    {"Outputs/Direction Channel10",              NMA_Channel10_dir,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[10],        false, 0},
+    {"Outputs/Direction Channel11",              NMA_Channel11_dir,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[11],        false, 0},
+    {"Outputs/Temperature Channel0",             NMA_Channel0_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[0],        false, 0},
+    {"Outputs/Temperature Channel1",             NMA_Channel1_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[1],        false, 0},
+    {"Outputs/Temperature Channel2",             NMA_Channel2_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[2],        false, 0},
+    {"Outputs/Temperature Channel3",             NMA_Channel3_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[3],        false, 0},
+    {"Outputs/Temperature Channel4",             NMA_Channel4_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[4],        false, 0},
+    {"Outputs/Temperature Channel5",             NMA_Channel5_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[5],        false, 0},
+    {"Outputs/Temperature Channel6",             NMA_Channel6_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[6],        false, 0},
+    {"Outputs/Temperature Channel7",             NMA_Channel7_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[7],        false, 0},
+    {"Outputs/Temperature Channel8",             NMA_Channel8_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[8],        false, 0},
+    {"Outputs/Temperature Channel9",             NMA_Channel9_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[9],        false, 0},
+    {"Outputs/Temperature Channel10",            NMA_Channel10_temp,         false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[10],       false, 0},
+    {"Outputs/Temperature Channel11",            NMA_Channel11_temp,         false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[11],       false, 0},
 };
-
 //Verify validity of this function
 void reset_teensy(){
     WRITE_RESTART(0x5FA0004);
@@ -321,6 +365,7 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
         return true;
     }
 
+
     // Process the metrics
     for(unsigned int idx = 0; idx < decoder.payload.metrics_count; idx++){
         Metric *metric = &decoder.payload.metrics[idx];
@@ -332,8 +377,11 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             continue;
         }
 
+    
         // Now handle the metric
         int64_t alias = metric_spec->alias;
+        extern ThermoElectricController TEC[NUM_TEC];
+        extern Thermistor therm[NUM_TEC];
 
         switch(alias){
         case NMA_Reboot:
@@ -369,6 +417,7 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             m_calTemp1 = metric->value.float_value;
             m_nodeCalibrated = false;
             m_nodeCalibrationINW = true;
+            therm->calibrate(m_calTemp1, 1);
             for(int br_idx = 0; br_idx < NUM_BROKERS; br_idx++){
                 set_up_next_payload();
                 publish_metrics(&m_broker[br_idx], 1, nodeBirthTopic.c_str(), true, ARRAY_AND_SIZE(NodeMetrics));
@@ -379,6 +428,7 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             m_nodeCalibrationINW = metric->value.boolean_value;
             m_calTemp2 = metric->value.float_value;
             m_nodeCalibrated = true;
+            therm->calibrate(m_calTemp2, 2);
             for(int br_idx = 0; br_idx < NUM_BROKERS; br_idx++){
                 set_up_next_payload();
                 publish_metrics(&m_broker[br_idx], 1, nodeBirthTopic.c_str(), true, ARRAY_AND_SIZE(NodeMetrics));
@@ -397,25 +447,23 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             }
             DebugPrint("Calibration data has been permanently erased.");            
             break;
-        case NMA_Channel0 ... NMA_Channel11: {
-            uint8_t NUM_TEC = 0;
-            ThermoElectricController TEC[NUM_TEC];
+        case NMA_Channel0_pwr ... NMA_Channel11_pwr: {            
             int channel;
-            channel = alias - NMA_Channel0;
+            channel = alias - NMA_Channel0_pwr;
             if(channel >= 0 && channel < NUMBER_OF_CHANNELS){
-                m_Channel[channel] = metric->value.float_value;
+                m_Channel_pwr[channel] = metric->value.float_value;
                 //### Should value be limited to min/max here?
                 //### It will be limited by set_channel(), but should we report the
                 //### commanded (invalid) voltage or the actual voltage set?
-                TEC[channel].setPower(m_Channel[channel]);
+                TEC[channel].setPower(m_Channel_pwr[channel]);
 
                 // Publish this TEC value, even if it hasn't changed.  The
                 // timestamp should show when the value was last set, not when
                 // it last changed.
-                if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel[channel]))
+                if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[channel]))
                     DebugPrint(cf_sparkplug_error);
             }
-            Serial.printf("Channel %d set to value %0.2f ", channel, m_Channel[channel]);            
+            Serial.printf("Channel %d set to value %0.2f ", channel, m_Channel_pwr[channel]);            
             break;
         }
         default:
@@ -497,18 +545,16 @@ void callback_worker(char* topic, byte* payload, unsigned int len){
  * Channel voltages
  * @param the average temperature reading
  */
-void publish_data(float* Channel_data, float ADC_temperature){
+void publish_data(int Channel_num, float Channel_pwr, bool Channel_dir, float Channel_temp ){
     // Store new Channel data, converting from raw Channel values to user units
-    for(int i = 0; i < NUMBER_OF_CHANNELS; i++){
-        m_Channel[i] = Channel_data[i];
-        if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel[i]))
-            DebugPrint(cf_sparkplug_error);
-    }
-
-    // Store new ADC temperature
-    m_ADC_temperature = ADC_temperature;
-    if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_ADC_temperature))
+    m_Channel_pwr[Channel_num] = Channel_pwr;
+    m_Channel_dir[Channel_num] = Channel_dir;
+    m_Channel_pwr[Channel_num] = Channel_temp;
+    if(!(update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[Channel_num]) &&
+            update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_dir[Channel_num]) &&
+            update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_temp[Channel_num])))
         DebugPrint(cf_sparkplug_error);
+
 }
 
 

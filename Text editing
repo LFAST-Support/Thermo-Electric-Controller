@@ -1,0 +1,18 @@
+ # Part 2 of calibration; reference high data gathering
+ set_cal2_label = QLabel('2) Place thermistors in a high reference temperature environement (100 C).')
+ v_box_layout.addWidget( center_widget( set_cal2_label ) )
+ set_cal2_controls = QWidget()
+ set_Calibration2_layout = QGridLayout()
+ set_cal2_controls.setLayout( set_Calibration2_layout )
+
+ # Calibration high reference temp entry
+ set_Calibration2_layout.addWidget( QLabel( 'Enter High Reference' ),   0, 0 )
+ set_cal_high_input = QLineEdit( '' )
+ set_Calibration2_layout.addWidget( set_cal_high_input,     0, 1)
+ set_Calibration2_layout.addWidget( QLabel( f'degrees C' ), 0, 2 )
+
+ # Calibrate High button
+ set_cal2_button = QPushButton( 'Calibrate High' )
+ set_TEC_button.clicked.connect( cal_high_button_handler )
+ set_Calibration2_layout.addWidget( set_cal2_button,           0, 3 )
+ v_box_layout.addWidget( center_widget( set_cal2_controls ) )

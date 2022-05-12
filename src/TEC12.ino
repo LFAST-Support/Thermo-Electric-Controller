@@ -12,10 +12,14 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
 #include "Arduino.h"
 #include "ThermoElectricController.h"
 #include "ThermoElectricGlobal.h"
+#include "ThermoElectricNetwork.h"
 
 /******************
  * Begin Configure
  ******************/
+
+
+
 
 struct tec_pins {
   int dirPin;
@@ -52,9 +56,6 @@ struct tec_pins pins[] =
 ThermoElectricController TEC[NUM_TEC];
 Thermistor therm[NUM_TEC];
 
-ThermoElectricController* TEC_ptr = TEC;
-
-
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
@@ -69,13 +70,14 @@ void setup() {
   //Load cal data if thermistors have been calibrated.
   if (EEPROM.read(0) == 0x01) {
     therm->load_cal_data();
+    #define temperature get_Calibrated_Temp(i)
+  }
+  else {
+    //#define temperature get_Raw_Temperature()
   }
   Serial.print("Configured "); Serial.print(NUM_TEC); Serial.println(" TEC current controllers");
   delay(1000);
 }
-
-
-
 
 int blink = 0; 
 
@@ -84,9 +86,11 @@ void loop() {
   for(int j = -100 ; j <= 100; j+=20 ) {	
     for (int i = 0; i < NUM_TEC; i++) {
       TEC[i].setPower(j);
-      Serial.print("TEC["); Serial.print( i ); Serial.print("] temp = "); Serial.print(TEC[i].getTemperature());
+      Serial.print("TEC["); Serial.print( i ); Serial.print("] temp = "); 
+      Serial.print(TEC[i].temperature);
       Serial.print(" Power = ");Serial.print(TEC[i].getPower());
       Serial.print(" Dir = ");Serial.println(TEC[i].getDirection());
+      publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Calibrated_Temp(i));
     }
     Serial.println();
     delay(1000);
