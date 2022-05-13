@@ -51,21 +51,14 @@ gui_controls_created = False
 message_seq          = 0
 cal_started = False
 
+channels = ['/\n'] * 12
+powers = ['/\n'] * 12
+directions = ['/\n'] * 12
+temperatures  = ['/\n'] * 12
+times = ['/\n'] * 12
+
 date_string = datetime.datetime.now().strftime( '%Y-%m-%d' )
 LOG_FILENAME = f'TEC_test_log_{date_string}.csv'
-
-class TEC:
-    def __init__(self, channel, power, direction, temperature, time):
-        self.channel = channel
-        self.pwr = power
-        self.dir = direction
-        self.temp = temperature
-        self.time = time
-
-TECs = (
-    [TEC(f'Channel {channel}', 0, False, 0, 0 ) for channel in range (NUM_CHANNELS)]
-    )
-
 
 # Convert a timestamp in milliseconds to a string
 def timestamp_str( timestamp ):
@@ -474,16 +467,20 @@ def display_metrics( topic, payload, save_to_log ):
 
     # Set the value string for each metric
     for metric in Metrics:
-        if metric.value == None:
-            metric.value_str = f'{metric.value}'
-        elif [metric.name == ( f'Inputs/Power Channel{channel}') for channel in range(12)]:
-            metric.value_str = f'{metric.value:.2f} °C'
-        elif [metric.name == ( f'Outputs/Direction Channel{channel}') for channel in range(12)]:
-            metric.value_str = f'{metric.value:.2f} °C'
-        elif [metric.name == ( f'Outputs/Temperature Channel{channel}') for channel in range(12)]:
-            metric.value_str = f'{metric.value:.2f} °C'
-        else:
-            metric.value_str = f'{metric.value}'
+        for channel in range(NUM_CHANNELS):
+            if metric.value == None:
+                metric.value_str = f'{metric.value}'
+            elif [metric.name == ( f'Inputs/Power Channel{channel}')]: #for channel in range(12)]:
+                metric.value_str = f'{metric.value:.2f}'
+                powers[channel] = f'{metric.value_str}\n'
+            elif [metric.name == ( f'Outputs/Direction Channel{channel}')]: # for channel in range(12)]:
+                metric.value_str = f'{metric.value}'
+                channels[channel] = f'{metric.value_str}\n'
+            elif [metric.name == ( f'Outputs/Temperature Channel{channel}')]: # for channel in range(12)]:
+                metric.value_str = f'{metric.value:.2f} °C'
+                temperatures[channel] = f'{metric.value_str}\n'
+            else:
+                metric.value_str = f'{metric.value}'
 
     if option_no_GUI:
         if option_show in [ 'changed', 'all' ]:
@@ -520,26 +517,46 @@ LJUST_DIST = 50
 
 # Display current metric values on the GUI
 def show_data_on_GUI():
+
+    gui_channel = str()
+    gui_pwr = str()
+    gui_dir = str()
+    gui_temp = str()
+    gui_time = str()
+
     if not gui_controls_created:
         report( 'GUI controls not created - metrics not displayed', error = True, always = True )
         return
 
-    # Build a list of Node metric data to display
-    names[12]  = str()
-    powers[12]  = str()
-    directions[12] = str()
-    temperatures[12]  = str()
-    times = str()
 
-    for metric in Metrics:
-        if metric.device == None:
-            names  += f'{metric.display_name:{LJUST_DIST}}\n'
-            powers += f'{metric.value_str}\n'
-            directions += f'{metric.value_str}\n'
-            temperatures += f'{metric.value_str}\n'
-            times  += f'{metric.timestamp}\n'
-    
-        
+    for channel in range(NUM_CHANNELS):
+        gui_channel += channels[channel]
+        gui_pwr += powers[channel]
+        gui_dir += directions[channel]
+        gui_temp += temperatures[channel]
+        gui_time += times[channel]
+
+    channel_outputs.setText(gui_channel)
+    power_outputs.setText(gui_pwr)
+    direction_outputs.setText(gui_dir)
+    temperature_outputs.setText(gui_temp)
+    time_outputs.setText(gui_time)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def log_data_to_CSV( timestamp, topic ):
@@ -726,6 +743,7 @@ option_channel_value = 0.0
 NUM_TEC = 12
 MIN_TEC_VALUE = -100
 MAX_TEC_VALUE = 100
+
 # Parse the command-line options
 for arg in sys.argv[ 1: ]:
     lower_arg = arg.lower()
@@ -772,6 +790,8 @@ client.on_connect = on_connect
 client.on_message = on_message
 try:
     client.connect( option_broker_URL, option_broker_port, 60 )
+    report( f'Connecting to MQTT broker at {option_broker_URL}:{option_broker_port}', error = True, always = True )
+
 except ConnectionRefusedError:
     report( f'Failed to connect to MQTT broker at {option_broker_URL}:{option_broker_port}', error = True, always = True )
     sys.exit()
@@ -794,7 +814,7 @@ if option_do_exit:
 def change_module_button_handler():
     module_id = change_module_input.text()
     if change_module( module_id, client ):
-        main_window.setWindowTitle( f'VCM Client v{APP_VERSION} - Module {module_id}' )
+        main_window.setWindowTitle( f'TEC Client v{APP_VERSION} - Module {module_id}' )
         show_data_on_GUI()
 
 def reboot_button_handler():
@@ -983,18 +1003,18 @@ else:
     outputs.setLayout( output_grid )
 
     # Node data
-    output_grid.addWidget( QLabel( 'Name' ),        0, 0 )
+    output_grid.addWidget( QLabel( 'TEC Channel' ),        0, 0 )
     output_grid.addWidget( QLabel( 'Power' ),       0, 1 )
     output_grid.addWidget( QLabel( 'Direction' ),   0, 2 )
     output_grid.addWidget( QLabel( 'Temperature' ), 0, 3 )
     output_grid.addWidget( QLabel( 'Timestamp' ),   0, 4 )
   
-    name_outputs  =        QLabel( '' )
+    channel_outputs  =     QLabel( '' )
     power_outputs  =       QLabel( '' )
     direction_outputs  =   QLabel( '' )
     temperature_outputs  = QLabel( '' )
     time_outputs  =        QLabel( '' )
-    output_grid.addWidget( name_outputs,  1, 0 )
+    output_grid.addWidget( channel_outputs,  1, 0 )
     output_grid.addWidget( power_outputs, 1, 1 )
     output_grid.addWidget( direction_outputs, 1, 2 )
     output_grid.addWidget( temperature_outputs, 1, 3 )
@@ -1033,14 +1053,10 @@ else:
     set_TEC_layout.addWidget( QLabel( f'({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f}, or "random")' ), 1, 2 )
 
     # Set TEC button
-    set_TEC_button = QPushButton( 'Set TEC' )
+    set_TEC_button = QPushButton( 'Set TEC(s)' )
     set_TEC_button.clicked.connect( set_TEC_button_handler )
     set_TEC_layout.addWidget( set_TEC_button,           2, 1 )
     v_box_layout.addWidget( center_widget( set_TEC_controls ) )
-
-
-
-
 
 
     # Controls to calibrate Thermistors
@@ -1048,7 +1064,7 @@ else:
     v_box_layout.addWidget( center_widget( set_Calibration_label ) )
 
     # Part 1 of calibration; reference low data gathering
-    set_cal_label = QLabel('')
+    set_cal_label = QLabel('1) Place thermistors in a low reference temperature environement (0 C).')
     v_box_layout.addWidget( center_widget( set_cal_label ) )
     set_cal_controls = QWidget()
     set_Calibration_layout = QGridLayout()
@@ -1061,18 +1077,18 @@ else:
     set_Calibration_layout.addWidget( QLabel( f'degrees C' ), 0, 2 )
 
     # Calibrate button
-    set_cal_button = QPushButton( '' )
-    set_TEC_button.clicked.connect( cal_button_handler )
+    set_cal_button = QPushButton( 'Calibrate Low' )
+    set_cal_button.clicked.connect( cal_button_handler )
     set_Calibration_layout.addWidget( set_cal_button,           0, 3 )
     v_box_layout.addWidget( center_widget( set_cal_controls ) )
 
 
-    if not option_calibrate:
-        set_cal_label.setText('1) Place thermistors in a low reference temperature environement (0 C).')
-        set_cal_button.setText('Calibrate Low')
-    else:
-        set_cal_label.setText('2) Place thermistors in a high reference temperature environement (100 C).')
-        set_cal_button.setText('Calibrate High')
+    #if not option_calibrate:
+     #   set_cal_label.setText()
+    #    set_cal_button.setText()
+   # else:
+    #    set_cal_label.setText('2) Place thermistors in a high reference temperature environement (100 C).')
+    #    set_cal_button.setText('Calibrate High')
 
 
 

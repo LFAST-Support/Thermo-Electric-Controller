@@ -67,6 +67,10 @@ void setup() {
     TEC[i].begin( pins[i].dirPin, pins[i].pwmPin, pins[i].thermistorPin );
   }
 
+  network_init();
+  hardwareID_init();
+  check_brokers();
+
   //Load cal data if thermistors have been calibrated.
   if (EEPROM.read(0) == 0x01) {
     therm->load_cal_data();
