@@ -88,6 +88,7 @@ float ThermoElectricController::get_Raw_Temperature() {
   
   // convert to voltage 
   float voltage = raw_data * 3.3/4096.0;
+  //Serial.printf("Voltage: %f\n", voltage);
   // convert to temperature
   
   /*
@@ -95,19 +96,28 @@ float ThermoElectricController::get_Raw_Temperature() {
   10K Ohm resistor assumed
   */
   float thermistance = 10000 * ((3.3/voltage) - 1); //If voltage drop accross thermistor occurs first.
+  //Serial.printf("Thermistance: %f\n", thermistance);
+
   /*
   Simplified B parameter Steinhart-Hart equation.
   B coefficient for thermistor:  TT7-10KC3-11
   */
   temperature = (1/((1/TEMPERATURENOMINAL) + BCOEFFICIENT*log(thermistance/THERMISTORNOMINAL))) - 273.15;
+  //Serial.printf("Temperature: %f\n", temperature);
   return temperature;
 }
 
 float ThermoElectricController::get_Calibrated_Temp(int i) {
   extern Thermistor therm[NUM_TEC];
+  extern ThermoElectricController TEC[NUMBER_OF_CHANNELS];
 
   temperature = (((get_Raw_Temperature() - therm[i].getRaw_low()) * (ref_High - ref_Low)) / 
                  (therm[i].getRaw_high() - therm[i].getRaw_low()) + ref_Low);
+  Serial.println(therm[i].getRaw_low());
+  Serial.println(therm[i].getRaw_high());
+
+
+  //Serial.printf("Temperature: %f\n", temperature);
   return temperature;
 }
 

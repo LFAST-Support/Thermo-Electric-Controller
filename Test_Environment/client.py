@@ -51,7 +51,7 @@ gui_controls_created = False
 message_seq          = 0
 cal_started = False
 
-channels = ['/\n'] * 12
+channels = ['1\n', '2\n', '3\n', '4\n', '5\n', '6\n', '7\n', '8\n', '8\n', '10\n', '11\n', '12\n'] 
 powers = ['/\n'] * 12
 directions = ['/\n'] * 12
 temperatures  = ['/\n'] * 12
@@ -471,14 +471,14 @@ def display_metrics( topic, payload, save_to_log ):
             if metric.value == None:
                 metric.value_str = f'{metric.value}'
             elif [metric.name == ( f'Inputs/Power Channel{channel}')]: #for channel in range(12)]:
-                metric.value_str = f'{metric.value:.2f}'
-                powers[channel] = f'{metric.value_str}\n'
+                metric.value_str = f'{metric.value}'
+                powers[channel] = f'{metric.value_str}'
             elif [metric.name == ( f'Outputs/Direction Channel{channel}')]: # for channel in range(12)]:
                 metric.value_str = f'{metric.value}'
-                channels[channel] = f'{metric.value_str}\n'
+                channels[channel] = f'{metric.value_str}'
             elif [metric.name == ( f'Outputs/Temperature Channel{channel}')]: # for channel in range(12)]:
-                metric.value_str = f'{metric.value:.2f} °C'
-                temperatures[channel] = f'{metric.value_str}\n'
+                metric.value_str = f'{metric.value} °C'
+                temperatures[channel] = f'{metric.value_str}'
             else:
                 metric.value_str = f'{metric.value}'
 
@@ -518,16 +518,15 @@ LJUST_DIST = 50
 # Display current metric values on the GUI
 def show_data_on_GUI():
 
+    if not gui_controls_created:
+        report( 'GUI controls not created - metrics not displayed', error = True, always = True )
+        return
+
     gui_channel = str()
     gui_pwr = str()
     gui_dir = str()
     gui_temp = str()
     gui_time = str()
-
-    if not gui_controls_created:
-        report( 'GUI controls not created - metrics not displayed', error = True, always = True )
-        return
-
 
     for channel in range(NUM_CHANNELS):
         gui_channel += channels[channel]
@@ -536,28 +535,11 @@ def show_data_on_GUI():
         gui_temp += temperatures[channel]
         gui_time += times[channel]
 
-    channel_outputs.setText(gui_channel)
-    power_outputs.setText(gui_pwr)
-    direction_outputs.setText(gui_dir)
-    temperature_outputs.setText(gui_temp)
-    time_outputs.setText(gui_time)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    channel_outputs.setText( gui_channel )
+    power_outputs.setText( gui_pwr )
+    direction_outputs.setText( gui_dir )
+    temperature_outputs.setText( gui_temp )
+    time_outputs.setText( gui_time )
 
 def log_data_to_CSV( timestamp, topic ):
     field_names = []
@@ -740,7 +722,6 @@ option_do_set_channel = False
 option_channel_number = 0
 option_channel_value = 0.0
 
-NUM_TEC = 12
 MIN_TEC_VALUE = -100
 MAX_TEC_VALUE = 100
 
@@ -1008,7 +989,6 @@ else:
     output_grid.addWidget( QLabel( 'Direction' ),   0, 2 )
     output_grid.addWidget( QLabel( 'Temperature' ), 0, 3 )
     output_grid.addWidget( QLabel( 'Timestamp' ),   0, 4 )
-  
     channel_outputs  =     QLabel( '' )
     power_outputs  =       QLabel( '' )
     direction_outputs  =   QLabel( '' )
@@ -1044,7 +1024,7 @@ else:
     set_TEC_layout.addWidget( QLabel( 'TEC Number' ),   0, 0 )
     set_TEC_Number_input = QLineEdit( '' )
     set_TEC_layout.addWidget( set_TEC_Number_input,     0, 1 )
-    set_TEC_layout.addWidget( QLabel( f'(0-{NUM_TEC - 1}, or "all" for all TECs)' ), 0, 2 )
+    set_TEC_layout.addWidget( QLabel( f'(0-{NUM_CHANNELS - 1}, or "all" for all TECs)' ), 0, 2 )
 
     # TEC Voltage entry
     set_TEC_layout.addWidget( QLabel( 'TEC Value' ),  1, 0 )
@@ -1081,19 +1061,6 @@ else:
     set_cal_button.clicked.connect( cal_button_handler )
     set_Calibration_layout.addWidget( set_cal_button,           0, 3 )
     v_box_layout.addWidget( center_widget( set_cal_controls ) )
-
-
-    #if not option_calibrate:
-     #   set_cal_label.setText()
-    #    set_cal_button.setText()
-   # else:
-    #    set_cal_label.setText('2) Place thermistors in a high reference temperature environement (100 C).')
-    #    set_cal_button.setText('Calibrate High')
-
-
-
-
-
 
     # The diagnostic text view
     diagnostic_text = QPlainTextEdit()

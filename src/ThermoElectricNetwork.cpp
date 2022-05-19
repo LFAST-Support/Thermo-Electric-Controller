@@ -53,10 +53,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #if defined(production_TEST)
 // MQTT broker definitions: TBD
 //Nestors office mosquitto broker
-#define MQTT_BROKER1 169,254,141,48
+//#define MQTT_BROKER1 169,254,141,48
+
+//#define MQTT_BROKER1 'localhost'
 
 //Nestors laptop mosquitto broker
-//#define MQTT_BROKER1 169,254,187,247
+#define MQTT_BROKER1 169,254,31,208
 #define MQTT_BROKER1_PORT 1883
 
 //NTP server address
@@ -179,53 +181,53 @@ static MetricSpec bdseqMetrics[NUM_BROKERS][NUM_ELEM(bdseqMetricsTemplate)];
 
 // All node metrics
 static MetricSpec NodeMetrics[] = {
-    {"Node Control/Reboot",                      NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeReboot,             false, 0},
-    {"Node Control/Rebirth",                     NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeRebirth,            false, 0},
-    {"Node Control/Next Server",                 NMA_NextServer,             true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeNextServer,         false, 0},
-    {"Node Control/Calibration INW",             NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrationINW,     false, 0},
-    {"Node Control/Clear Cal Data",              NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeClearCal,           false, 0},
-    {"Properties/Calibration Status",            NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrated,         false, 0},
-    {"Node Control/Calibration Temperature 1",   NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp1,               false, 0},        
-    {"Node Control/Calibration Temperature 2",   NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp2,               false, 0},    
-    {"Properties/Communications Version",        NMA_CommsVersion,           false, METRIC_DATA_TYPE_INT64,   &m_commsVersion,           false, 0},
-    {"Properties/Firmware Version",              NMA_FirmwareVersion,        false, METRIC_DATA_TYPE_STRING,  &m_firmwareVersion,        false, 0},
-    {"Properties/Units",                         NMA_Units,                  false, METRIC_DATA_TYPE_STRING,  &m_units,                  false, 0},
-    {"Inputs/Power Channel0",                    NMA_Channel0_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[0],         false, 0},
-    {"Inputs/Power Channel1 ",                    NMA_Channel1_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[1],         false, 0},
-    {"Inputs/Power Channel2 ",                    NMA_Channel2_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[2],         false, 0},
-    {"Inputs/Power Channel3 ",                    NMA_Channel3_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[3],         false, 0},
-    {"Inputs/Power Channel4 ",                    NMA_Channel4_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[4],         false, 0},
-    {"Inputs/Power Channel5 ",                    NMA_Channel5_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[5],         false, 0},
-    {"Inputs/Power Channel6 ",                    NMA_Channel6_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[6],         false, 0},
-    {"Inputs/Power Channel7 ",                    NMA_Channel7_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[7],         false, 0},
-    {"Inputs/Power Channel8 ",                    NMA_Channel8_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[8],         false, 0},
-    {"Inputs/Power Channel9 ",                    NMA_Channel9_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[9],         false, 0},
-    {"Inputs/Power Channel10 ",                   NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[10],        false, 0},
-    {"Inputs/Power Channel11 ",                   NMA_Channel11_pwr,          true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[11],        false, 0},
-    {"Outputs/Direction Channel0",               NMA_Channel0_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[0],         false, 0},
-    {"Outputs/Direction Channel1",               NMA_Channel1_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[1],         false, 0},
-    {"Outputs/Direction Channel2",               NMA_Channel2_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[2],         false, 0},
-    {"Outputs/Direction Channel3",               NMA_Channel3_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[3],         false, 0},
-    {"Outputs/Direction Channel4",               NMA_Channel4_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[4],         false, 0},
-    {"Outputs/Direction Channel5",               NMA_Channel5_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[5],         false, 0},
-    {"Outputs/Direction Channel6",               NMA_Channel6_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[6],         false, 0},
-    {"Outputs/Direction Channel7",               NMA_Channel7_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[7],         false, 0},
-    {"Outputs/Direction Channel8",               NMA_Channel8_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[8],         false, 0},
-    {"Outputs/Direction Channel9",               NMA_Channel9_dir,           false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[9],         false, 0},
-    {"Outputs/Direction Channel10",              NMA_Channel10_dir,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[10],        false, 0},
-    {"Outputs/Direction Channel11",              NMA_Channel11_dir,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_dir[11],        false, 0},
-    {"Outputs/Temperature Channel0",             NMA_Channel0_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[0],        false, 0},
-    {"Outputs/Temperature Channel1",             NMA_Channel1_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[1],        false, 0},
-    {"Outputs/Temperature Channel2",             NMA_Channel2_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[2],        false, 0},
-    {"Outputs/Temperature Channel3",             NMA_Channel3_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[3],        false, 0},
-    {"Outputs/Temperature Channel4",             NMA_Channel4_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[4],        false, 0},
-    {"Outputs/Temperature Channel5",             NMA_Channel5_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[5],        false, 0},
-    {"Outputs/Temperature Channel6",             NMA_Channel6_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[6],        false, 0},
-    {"Outputs/Temperature Channel7",             NMA_Channel7_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[7],        false, 0},
-    {"Outputs/Temperature Channel8",             NMA_Channel8_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[8],        false, 0},
-    {"Outputs/Temperature Channel9",             NMA_Channel9_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[9],        false, 0},
-    {"Outputs/Temperature Channel10",            NMA_Channel10_temp,         false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[10],       false, 0},
-    {"Outputs/Temperature Channel11",            NMA_Channel11_temp,         false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[11],       false, 0},
+    {"Node Control/Reboot",                       NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeReboot,             false, 0},
+    {"Node Control/Rebirth",                      NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeRebirth,            false, 0},
+    {"Node Control/Next Server",                  NMA_NextServer,             true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeNextServer,         false, 0},
+    {"Node Control/Calibration INW",              NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrationINW,     false, 0},
+    {"Node Control/Clear Cal Data",               NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeClearCal,           false, 0},
+    {"Properties/Calibration Status",             NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrated,         false, 0},
+    {"Node Control/Calibration Temperature 1",    NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp1,               false, 0},        
+    {"Node Control/Calibration Temperature 2",    NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp2,               false, 0},    
+    {"Properties/Communications Version",         NMA_CommsVersion,           false, METRIC_DATA_TYPE_INT64,   &m_commsVersion,           false, 0},
+    {"Properties/Firmware Version",               NMA_FirmwareVersion,        false, METRIC_DATA_TYPE_STRING,  &m_firmwareVersion,        false, 0},
+    {"Properties/Units",                          NMA_Units,                  false, METRIC_DATA_TYPE_STRING,  &m_units,                  false, 0},
+    {"Outputs/Power Channel0",                    NMA_Channel0_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[0],         false, 0},
+    {"Outputs/Power Channel1",                    NMA_Channel1_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[1],         false, 0},
+    {"Outputs/Power Channel2",                    NMA_Channel2_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[2],         false, 0},
+    {"Outputs/Power Channel3",                    NMA_Channel3_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[3],         false, 0},
+    {"Outputs/Power Channel4",                    NMA_Channel4_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[4],         false, 0},
+    {"Outputs/Power Channel5",                    NMA_Channel5_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[5],         false, 0},
+    {"Outputs/Power Channel6",                    NMA_Channel6_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[6],         false, 0},
+    {"Outputs/Power Channel7",                    NMA_Channel7_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[7],         false, 0},
+    {"Outputs/Power Channel8",                    NMA_Channel8_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[8],         false, 0},
+    {"Outputs/Power Channel9",                    NMA_Channel9_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[9],         false, 0},
+    {"Outputs/Power Channel10",                   NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[10],        false, 0},
+    {"Outputs/Power Channel11",                   NMA_Channel11_pwr,          true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[11],        false, 0},
+    {"Outputs/Direction Channel0",                NMA_Channel0_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[0],         false, 0},
+    {"Outputs/Direction Channel1",                NMA_Channel1_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[1],         false, 0},
+    {"Outputs/Direction Channel2",                NMA_Channel2_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[2],         false, 0},
+    {"Outputs/Direction Channel3",                NMA_Channel3_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[3],         false, 0},
+    {"Outputs/Direction Channel4",                NMA_Channel4_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[4],         false, 0},
+    {"Outputs/Direction Channel5",                NMA_Channel5_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[5],         false, 0},
+    {"Outputs/Direction Channel6",                NMA_Channel6_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[6],         false, 0},
+    {"Outputs/Direction Channel7",                NMA_Channel7_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[7],         false, 0},
+    {"Outputs/Direction Channel8",                NMA_Channel8_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[8],         false, 0},
+    {"Outputs/Direction Channel9",                NMA_Channel9_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[9],         false, 0},
+    {"Outputs/Direction Channel10",               NMA_Channel10_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[10],        false, 0},
+    {"Outputs/Direction Channel11",               NMA_Channel11_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[11],        false, 0},
+    {"Inputs/Temperature Channel0",               NMA_Channel0_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[0],        false, 0},
+    {"Inputs/Temperature Channel1",               NMA_Channel1_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[1],        false, 0},
+    {"Inputs/Temperature Channel2",               NMA_Channel2_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[2],        false, 0},
+    {"Inputs/Temperature Channel3",               NMA_Channel3_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[3],        false, 0},
+    {"Inputs/Temperature Channel4",               NMA_Channel4_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[4],        false, 0},
+    {"Inputs/Temperature Channel5",               NMA_Channel5_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[5],        false, 0},
+    {"Inputs/Temperature Channel6",               NMA_Channel6_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[6],        false, 0},
+    {"Inputs/Temperature Channel7",               NMA_Channel7_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[7],        false, 0},
+    {"Inputs/Temperature Channel8",               NMA_Channel8_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[8],        false, 0},
+    {"Inputs/Temperature Channel9",               NMA_Channel9_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[9],        false, 0},
+    {"Inputs/Temperature Channel10",              NMA_Channel10_temp,         false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[10],       false, 0},
+    {"Inputs/Temperature Channel11",              NMA_Channel11_temp,         false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[11],       false, 0},
 };
 //Verify validity of this function
 void reset_teensy(){
@@ -283,10 +285,14 @@ void publish_node_data(){
  */
 bool subscribeTopics(PubSubClient* broker){
     bool success = true;
-    if(!broker->subscribe(HOST_STATE_TOPIC))
+    if(!broker->subscribe(HOST_STATE_TOPIC)) {
+        Serial.println("Failed to subscribe to host state topic.");
         success = false;
-    if(!broker->subscribe(nodeCmdTopic.c_str()))
+    }
+    if(!broker->subscribe(nodeCmdTopic.c_str())) {
+        Serial.println("Failed to subscribe to node commands.");
         success = false;
+    }
     return success;
 }
 
@@ -295,9 +301,9 @@ bool connect_to_broker(PubSubClient *broker, int br_idx){
     // Increment the birth/death sequence number before creating the NDEATH
     // message
     m_bdSeq[br_idx]++;
-    if(!update_metric(ARRAY_AND_SIZE(bdseqMetrics[br_idx]), &m_bdSeq[br_idx]))
+    if(!update_metric(ARRAY_AND_SIZE(bdseqMetrics[br_idx]), &m_bdSeq[br_idx])) {
         DebugPrint(cf_sparkplug_error);
-
+    }
     // Create the NDEATH message with its metrics
     set_up_ndeath_payload();
     if(!add_metrics(true, ARRAY_AND_SIZE(bdseqMetrics[br_idx]))){
@@ -351,10 +357,10 @@ unsigned long long get_current_time_millis(void){
 // is, handle it and return true, even if it's invalid; otherwise return false.
 bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
     Serial.println("Processing Command.");
-    if(strcmp(topic, nodeCmdTopic.c_str()) != 0)
+    if(strcmp(topic, nodeCmdTopic.c_str()) != 0) {
         // This is not a Node command message
         return false;
-
+    }
     // Decode the Sparkplug payload
     sparkplugb_arduino_decoder decoder;
     if(!decoder.decode(payload, len)){
@@ -367,7 +373,7 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
 
 
     // Process the metrics
-    for(unsigned int idx = 0; idx < decoder.payload.metrics_count; idx++){
+    for(unsigned int idx = 0; idx < decoder.payload.metrics_count; idx++) {
         Metric *metric = &decoder.payload.metrics[idx];
         MetricSpec *metric_spec = find_received_metric(ARRAY_AND_SIZE(NodeMetrics), metric);
         if(metric_spec == NULL){
@@ -385,7 +391,7 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
 
         switch(alias){
         case NMA_Reboot:
-            if(metric->value.boolean_value){
+            if(metric->value.boolean_value) {
                 DebugPrint("Reboot command received");
                 // Reboot immediately - don't attempt to process the rest of
                 // the message, publish data, send death certificate,
@@ -394,12 +400,15 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             }
             break;
         case NMA_Rebirth:
+            DebugPrint("Rebirth Command received");
             m_nodeRebirth = metric->value.boolean_value;
-            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeRebirth))
+            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeRebirth)) {
                 DebugPrint(cf_sparkplug_error);
-            if(m_nodeRebirth)
-                // Publish birth messages again
+            }
+            if(m_nodeRebirth) {
+                publish_births();
                 DebugPrint("Node Rebirth command received");
+            }
             break;
 
         case NMA_NextServer:
@@ -407,10 +416,12 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             //### has no real use here since we stay connected to all brokers.
             //### Should we just ignore this command (and remove metric and flag)?
             m_nodeNextServer = metric->value.boolean_value;
-            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeNextServer))
+            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeNextServer)) {
                 DebugPrint(cf_sparkplug_error);
-            if(m_nodeNextServer)
+            }
+            if(m_nodeNextServer) {
                 DebugPrint("NextServer command received");
+            }
             break;
         case NMA_CalibrationTemp1:
             m_nodeCalibrationINW = metric->value.boolean_value;
@@ -436,8 +447,9 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             break;
         case NMA_CalibrationINW:
             m_nodeCalibrationINW = metric->value.boolean_value;
-            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeCalibrationINW))
+            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeCalibrationINW)){
                 DebugPrint(cf_sparkplug_error);
+            }
             break;
         case NMA_ClearCal:
             m_nodeCalibrated = false;
@@ -460,8 +472,9 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
                 // Publish this TEC value, even if it hasn't changed.  The
                 // timestamp should show when the value was last set, not when
                 // it last changed.
-                if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[channel]))
-                    DebugPrint(cf_sparkplug_error);
+                //if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[channel])) {
+                //    DebugPrint(cf_sparkplug_error);
+                //}
             }
             Serial.printf("Channel %d set to value %0.2f ", channel, m_Channel_pwr[channel]);            
             break;
@@ -510,8 +523,9 @@ void callback_worker(char* topic, byte* payload, unsigned int len){
     bool host_online = false;
     if(process_host_state_message(topic, payload, len, &host_online)){
         // A non-empty error indicates the message was invalid
-        if(strcmp(cf_sparkplug_error, "") != 0)
+        if(strcmp(cf_sparkplug_error, "") != 0) {
             DebugPrint(cf_sparkplug_error);
+        }
         if(host_online){
             // Primary Host is connected to this broker
             DebugPrint("Primary Host is ONLINE");
@@ -537,7 +551,7 @@ void callback_worker(char* topic, byte* payload, unsigned int len){
 }
 
 /**
- * @brief Publish metrics for Channel channels and temperature.  Note that we
+ * @brief Publish metrics for TEC channels and temperature.  Note that we
  * publish this data even if it hasn't changed because the timestamp should
  * show when the data was last read, not when it last changed.
  *
@@ -545,16 +559,22 @@ void callback_worker(char* topic, byte* payload, unsigned int len){
  * Channel voltages
  * @param the average temperature reading
  */
-void publish_data(int Channel_num, float Channel_pwr, bool Channel_dir, float Channel_temp ){
-    // Store new Channel data, converting from raw Channel values to user units
-    m_Channel_pwr[Channel_num] = Channel_pwr;
-    m_Channel_dir[Channel_num] = Channel_dir;
-    m_Channel_pwr[Channel_num] = Channel_temp;
-    if(!(update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[Channel_num]) &&
-            update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_dir[Channel_num]) &&
-            update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_temp[Channel_num])))
-        DebugPrint(cf_sparkplug_error);
 
+
+void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp ){
+    
+    // Store new Channel data, converting from raw Channel values to user units
+    m_Channel_pwr[channel_num] = channel_pwr;
+    m_Channel_dir[channel_num] = channel_dir;
+    m_Channel_temp[channel_num] = channel_temp;
+
+    for (int i = 0; i < NUM_TEC; i++) {
+        if(!(update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[i]) &&
+                update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_dir[i]) &&
+                update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_temp[i]))) {
+            DebugPrint(cf_sparkplug_error);
+        }
+    }
 }
 
 
@@ -676,12 +696,12 @@ bool network_init(void){
         DebugPrintNoEOL("NTP updated.  Time is ");
         DebugPrint(ntp.getFormattedTime());
     }
-    else
+    else {
         DebugPrint("NTP not updated");
-
-    for(int i = 0; i < NUM_BROKERS; ++i)
+    }
+    for(int i = 0; i < NUM_BROKERS; ++i) {
         m_broker[i].setClient(enet[i]);
-
+    }
     m_broker[0].setServer(IPAddress(MQTT_BROKER1), MQTT_BROKER1_PORT);
 
     for(int i = 0; i < NUM_BROKERS; ++i){
@@ -706,9 +726,10 @@ void check_brokers(void){
         PubSubClient *broker = &m_broker[i];
         if(!broker->connected()){
             // Try to connect to the broker
-            if(!connect_to_broker(broker, i))
+            if(!connect_to_broker(broker, i)){
                 // Can't connect - ignore this broker
                 continue;
+            }
             new_connection = true;
             DebugPrintNoEOL("Connected to broker");
             DebugPrint(i+1);
@@ -725,32 +746,35 @@ void check_brokers(void){
     // the brokers
     for(int i = 0; i < NUM_BROKERS; ++i){
         PubSubClient *broker = &m_broker[i];
-        if(broker->connected())
+        if(broker->connected()) {
             broker->loop();
+        }
     }
 
     // Have we been asked to re-publish our birth messages?
     bool rebirth = m_nodeRebirth;
     if(rebirth){
         // Don't publish birth messages if we just did that
-        if(!new_connection)
+        if(!new_connection) {
             publish_births();
+        }
 
         // Reset the flags after publishing so that the birth message/s will
         // show which flags triggered them.  Note that an NDATA and/or DDATA
         // message will immediately follow with the flags reset to false.
-        if(m_nodeRebirth){
+        if(m_nodeRebirth) {
             m_nodeRebirth = false;
             if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeRebirth))
                 DebugPrint(cf_sparkplug_error);
         }
     }
     // Publish any Node data that has changed
-    publish_node_data();
+    //publish_node_data();
     // Reset the next server flag if it was set
-    if(m_nodeNextServer){
+    if(m_nodeNextServer) {
         m_nodeNextServer = false;
-        if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeNextServer))
+        if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeNextServer)) {
             DebugPrint(cf_sparkplug_error);
+        }   
     }
 }
