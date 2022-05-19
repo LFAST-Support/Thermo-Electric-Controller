@@ -18,7 +18,7 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
  * Begin Configure
  ******************/
 
-#define temperature get_Raw_Temperature()
+#define temp get_Raw_Temperature()
 
 
 
@@ -67,8 +67,6 @@ void setup() {
   }
 
   bool setup_successful = hardwareID_init() && network_init();
-  
-
 
   if(setup_successful){
     Serial.println("Setup successful.");
@@ -82,9 +80,8 @@ void setup() {
   if (EEPROM.read(0) == 0x01) {
     Serial.println("Retrieving Cal Data.");
     therm->load_cal_data();
-    #define temperature get_Calibrated_Temp(i)
+    #define temp get_Calibrated_Temp(i)
   }
-
   Serial.print("Configured "); Serial.print(NUM_TEC); Serial.println(" TEC current controllers");
   delay(1000);
 }
@@ -98,10 +95,10 @@ void loop() {
     for (int i = 0; i < NUM_TEC; i++) {
       //TEC[i + 1].setPower(j);
      // Serial.print("TEC["); Serial.print( i ); Serial.print("] temp = "); 
-      //Serial.print(TEC[i].temperature);
+      Serial.print(TEC[i].get_Raw_Temperature());
       //Serial.print(" Power = ");Serial.print(TEC[i].getPower());
       //Serial.print(" Dir = ");Serial.println(TEC[i].getDirection());
-      publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].temperature);
+      publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Raw_Temperature());
       check_brokers();
     }
     Serial.println();

@@ -130,35 +130,22 @@ bool  ThermoElectricController::getDirection( void ) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 bool Thermistor::calibrate( float ref_temp, int tempNum ) {
   Serial.printf("Set temp is %0.2f, calibration begun.\n", ref_temp); 
   extern ThermoElectricController TEC[NUM_TEC];
   extern Thermistor therm[NUM_TEC];  
-  eeAddr = 1;
+  
 
   if (tempNum == 1) {
+    eeAddr = 1;
     Serial.println("Cal data 1 INW");
     ref_Low = ref_temp;
     EEPROM.put(eeAddr, ref_Low);
     eeAddr += sizeof(ref_Low); 
     for (int i = 0; i < NUM_TEC; i++) { 
       therm[i].raw_Low = TEC[i].get_Raw_Temperature();
-      EEPROM.put(eeAddr, raw_Low);
-      eeAddr += sizeof(raw_Low);
+      EEPROM.put(eeAddr, therm[i].raw_Low);
+      eeAddr += sizeof(therm[i].raw_Low);
     }
     return false;
   } 
@@ -169,14 +156,25 @@ bool Thermistor::calibrate( float ref_temp, int tempNum ) {
     eeAddr += sizeof(ref_High); 
     for (int i = 0; i < NUM_TEC; i++) { 
       therm[i].raw_High = TEC[i].get_Raw_Temperature();
-      EEPROM.put(eeAddr, raw_High);
-      eeAddr += sizeof(raw_High); 
+      EEPROM.put(eeAddr, therm[i].raw_High);
+      eeAddr += sizeof(therm[i].raw_High); 
       therm[i].calibrated = true;
     }
     EEPROM.write(0, 0x01);
     Serial.println("Calibration complete.");
   } 
   return true;  
+}
+bool Thermistor::clear_calibration() {
+  extern Thermistor therm[NUM_TEC];  
+  EEPROM.write(0, 0x00);
+  
+  for (int i = 0; i < NUM_TEC; i++) { 
+    therm[i].raw_Low = 0;
+    therm[i].raw_High = 0;
+  }
+
+
 }
 
 float Thermistor::getRaw_low() {

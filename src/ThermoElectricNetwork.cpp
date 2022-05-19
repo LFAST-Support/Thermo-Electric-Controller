@@ -58,7 +58,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 //#define MQTT_BROKER1 'localhost'
 
 //Nestors laptop mosquitto broker
-#define MQTT_BROKER1 169,254,31,208
+#define MQTT_BROKER1 169,254,52,240
 #define MQTT_BROKER1_PORT 1883
 
 //NTP server address
@@ -181,17 +181,17 @@ static MetricSpec bdseqMetrics[NUM_BROKERS][NUM_ELEM(bdseqMetricsTemplate)];
 
 // All node metrics
 static MetricSpec NodeMetrics[] = {
-    {"Node Control/Reboot",                       NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeReboot,             false, 0},
-    {"Node Control/Rebirth",                      NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeRebirth,            false, 0},
-    {"Node Control/Next Server",                  NMA_NextServer,             true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeNextServer,         false, 0},
-    {"Node Control/Calibration INW",              NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrationINW,     false, 0},
-    {"Node Control/Clear Cal Data",               NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeClearCal,           false, 0},
-    {"Properties/Calibration Status",             NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrated,         false, 0},
-    {"Node Control/Calibration Temperature 1",    NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp1,               false, 0},        
-    {"Node Control/Calibration Temperature 2",    NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp2,               false, 0},    
     {"Properties/Communications Version",         NMA_CommsVersion,           false, METRIC_DATA_TYPE_INT64,   &m_commsVersion,           false, 0},
     {"Properties/Firmware Version",               NMA_FirmwareVersion,        false, METRIC_DATA_TYPE_STRING,  &m_firmwareVersion,        false, 0},
     {"Properties/Units",                          NMA_Units,                  false, METRIC_DATA_TYPE_STRING,  &m_units,                  false, 0},
+    {"Properties/Calibration INW",                NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrationINW,     false, 0},
+    {"Properties/Calibration Status",             NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrated,         false, 0},
+    {"Node Control/Reboot",                       NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeReboot,             false, 0},
+    {"Node Control/Rebirth",                      NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeRebirth,            false, 0},
+    {"Node Control/Next Server",                  NMA_NextServer,             true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeNextServer,         false, 0},
+    {"Node Control/Clear Cal Data",               NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeClearCal,           false, 0},
+    {"Node Control/Calibration Temperature 1",    NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp1,               false, 0},        
+    {"Node Control/Calibration Temperature 2",    NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp2,               false, 0},    
     {"Outputs/Power Channel0",                    NMA_Channel0_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[0],         false, 0},
     {"Outputs/Power Channel1",                    NMA_Channel1_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[1],         false, 0},
     {"Outputs/Power Channel2",                    NMA_Channel2_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[2],         false, 0},
@@ -241,9 +241,7 @@ void reset_teensy(){
 // Publish the NBIRTH message and the DBIRTH message for any devices, with all
 // metrics specified.
 void publish_births(){
-    if (EEPROM.read(0) == 0x01) {
-        m_nodeCalibrated = true;
-    }
+
     for(int br_idx = 0; br_idx < NUM_BROKERS; br_idx++){
         // Create and publish the NBIRTH message containing the bdseq metric
         // for this broker together with all the node metrics
@@ -260,6 +258,12 @@ void publish_births(){
 
 // Publish the NDATA message with any node metrics that have been updated.
 void publish_node_data(){
+    if (EEPROM.read(0) == 0x01) {
+        m_nodeCalibrated = true;
+    }
+    else {
+        m_nodeCalibrated = false;
+    }
     // Publish any updated metrics in the NDATA message
     set_up_next_payload();
     if(!publish_metrics(ARRAY_AND_SIZE(m_broker), nodeDataTopic.c_str(), false,
@@ -424,39 +428,23 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             }
             break;
         case NMA_CalibrationTemp1:
-            m_nodeCalibrationINW = metric->value.boolean_value;
             m_calTemp1 = metric->value.float_value;
+            therm->calibrate(m_calTemp1, 1);
             m_nodeCalibrated = false;
             m_nodeCalibrationINW = true;
-            therm->calibrate(m_calTemp1, 1);
-            for(int br_idx = 0; br_idx < NUM_BROKERS; br_idx++){
-                set_up_next_payload();
-                publish_metrics(&m_broker[br_idx], 1, nodeBirthTopic.c_str(), true, ARRAY_AND_SIZE(NodeMetrics));
-                m_nodeCalibrationINW = false; 
-            }
+            publish_births();
             break;
         case NMA_CalibrationTemp2:
-            m_nodeCalibrationINW = metric->value.boolean_value;
             m_calTemp2 = metric->value.float_value;
-            m_nodeCalibrated = true;
             therm->calibrate(m_calTemp2, 2);
-            for(int br_idx = 0; br_idx < NUM_BROKERS; br_idx++){
-                set_up_next_payload();
-                publish_metrics(&m_broker[br_idx], 1, nodeBirthTopic.c_str(), true, ARRAY_AND_SIZE(NodeMetrics));
-            }
-            break;
-        case NMA_CalibrationINW:
-            m_nodeCalibrationINW = metric->value.boolean_value;
-            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeCalibrationINW)){
-                DebugPrint(cf_sparkplug_error);
-            }
+            m_nodeCalibrated = true;
+            m_nodeCalibrationINW = false;
+            publish_births();
             break;
         case NMA_ClearCal:
+            therm->clear_calibration();
             m_nodeCalibrated = false;
-            for(int br_idx = 0; br_idx < NUM_BROKERS; br_idx++){
-                set_up_next_payload();
-                publish_metrics(&m_broker[br_idx], 1, nodeBirthTopic.c_str(), true, ARRAY_AND_SIZE(NodeMetrics));
-            }
+            publish_births();
             DebugPrint("Calibration data has been permanently erased.");            
             break;
         case NMA_Channel0_pwr ... NMA_Channel11_pwr: {            

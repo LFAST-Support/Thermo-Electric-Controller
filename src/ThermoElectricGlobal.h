@@ -82,6 +82,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 #define NUMBER_OF_CHANNELS 12
 
+
+
 const uint8_t NUM_TEC = 12; // 12 TEC
 
 //int eeAddr = 1;
