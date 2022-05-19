@@ -468,6 +468,8 @@ def display_metrics( topic, payload, save_to_log ):
     global powers
     global directions
     global temperatures
+    global cal_INW
+    global cal_status
 
     # Get the measurement units value
     units = '?'
@@ -475,6 +477,18 @@ def display_metrics( topic, payload, save_to_log ):
         metric_spec = find_metric( None, 'Properties/Units' )
         if metric_spec.value != None:
             units = metric_spec.value
+    except ValueError:
+        pass
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration Status' )
+        if metric_spec.value != None:
+            cal_status = metric_spec.value
+    except ValueError:
+        pass
+    try:
+        metric_spec = find_metric( None, 'Node Control/Calibration INW' )
+        if metric_spec.value != None:
+            cal_INW = metric_spec.value
     except ValueError:
         pass
 
@@ -931,6 +945,7 @@ if option_no_GUI:
                 show_usage()
             option_channel_number  = split_arg[ 1 ]
             option_channel_voltage = split_arg[ 2 ]
+            set_channel(option_channel_number, option_channel_value)
 
                             
 
@@ -1012,7 +1027,7 @@ else:
     outputs.setLayout( output_grid )
 
     # Node data
-    output_grid.addWidget( QLabel( 'TEC Channel' ),        0, 0 )
+    output_grid.addWidget( QLabel( 'TEC Channel' ), 0, 0 )
     output_grid.addWidget( QLabel( 'Power' ),       0, 1 )
     output_grid.addWidget( QLabel( 'Direction' ),   0, 2 )
     output_grid.addWidget( QLabel( 'Temperature' ), 0, 3 )
@@ -1067,27 +1082,46 @@ else:
     set_TEC_layout.addWidget( set_TEC_button,           2, 1 )
     v_box_layout.addWidget( center_widget( set_TEC_controls ) )
 
+
+
+
     # Controls to calibrate Thermistors
     set_Calibration_label = QLabel( f'Calibration' )
     v_box_layout.addWidget( center_widget( set_Calibration_label ) )
+    #set_calibration_controls = QWidget()
+    #set_calibration_layout = QGridLayout()
+    #set_calibration_controls.setLayout( set_calibration_layout )
+
+    cal_status  = False
+    cal_INW     = False
+    v_box_layout.addWidget( QLabel( f'Calibrated? : {cal_status} ' ), 0, Qt.AlignCenter )
+    #set_calibration_layout.addWidget( cal_status,  0, 1 )
+    v_box_layout.addWidget( QLabel( f'Calibration in progress? : {cal_INW}' ), 0, Qt.AlignCenter )
+    #set_calibration_layout.addWidget( cal_INW,  1, 1 )
+
+
+    line_space = QLabel('')
+    v_box_layout.addWidget( center_widget( line_space ) )
+
 
     # Part 1 of calibration; reference low data gathering
     set_cal_label = QLabel('1) Place thermistors in a low reference temperature environement (0 C).')
     v_box_layout.addWidget( center_widget( set_cal_label ) )
     set_cal_controls = QWidget()
-    set_Calibration_layout = QGridLayout()
-    set_cal_controls.setLayout( set_Calibration_layout )
+    set_cal_layout = QGridLayout()
+    set_cal_controls.setLayout( set_cal_layout )
+
 
     # Calibration reference temp entry
-    set_Calibration_layout.addWidget( QLabel( 'Enter reference temperature:' ),   0, 0 )
+    set_cal_layout.addWidget( QLabel( 'Enter reference temperature:' ),   3, 0 )
     set_cal_low_input = QLineEdit( '' )
-    set_Calibration_layout.addWidget( set_cal_low_input,     0, 1 )
-    set_Calibration_layout.addWidget( QLabel( f'degrees C' ), 0, 2 )
+    set_cal_layout.addWidget( set_cal_low_input,     3, 1 )
+    set_cal_layout.addWidget( QLabel( f'degrees C' ), 3, 2 )
 
     # Calibrate button
     set_cal_button = QPushButton( 'Calibrate Low' )
     set_cal_button.clicked.connect( cal_button_handler )
-    set_Calibration_layout.addWidget( set_cal_button,           0, 3 )
+    set_cal_layout.addWidget( set_cal_button,           3, 3 )
     v_box_layout.addWidget( center_widget( set_cal_controls ) )
 
     # The diagnostic text view
