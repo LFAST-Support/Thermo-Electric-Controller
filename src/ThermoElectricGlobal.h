@@ -54,7 +54,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 #define production_TEST
 
-#define NUM_MODULES   32
+#define NUM_MODULES   6
 #define MAX_BOARD_ID  (NUM_MODULES - 1)
 
 // Display diagnostic messages on serial port if debugging is enabled
@@ -81,12 +81,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #define ID_PIN_4 33
 
 #define NUMBER_OF_CHANNELS 12
-
-
-
 const uint8_t NUM_TEC = 12; // 12 TEC
-
-//int eeAddr = 1;
 static float ref_Low;
 static float ref_High;
 static int hardware_id = -1;

@@ -15,6 +15,9 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
 #include "Arduino.h"
 #include "ThermoElectricGlobal.h"
 
+bool hardwareID_init();
+int get_hardware_id();
+
 const int TEC_PWM_FREQ = 50000;
 
 class ThermoElectricController {
@@ -24,10 +27,10 @@ class ThermoElectricController {
   
   int setPower( const int percent );
   //void setDirection( const bool direction );
-  float get_Raw_Temperature();
-  float get_Calibrated_Temp(int i);
+  float get_Temperature(int channel);
   int getPower();
   bool getDirection();
+
  protected:
   void setPwm(int power);
   float temperature; // cooked ADC value
@@ -39,7 +42,6 @@ class ThermoElectricController {
   int thermistorPin;
   int thermistorResistor;
   int raw_data;
-
 };
 
 class Thermistor: public ThermoElectricController {
@@ -52,15 +54,10 @@ class Thermistor: public ThermoElectricController {
     void setRaw_low(float low);
     void setRaw_high(float high);
     int eeAddr;
-    bool calibrated = false;
 
   private:
     float raw_Low;
     float raw_High;
 };
-
-
-bool hardwareID_init();
-int get_hardware_id();
 
 #endif

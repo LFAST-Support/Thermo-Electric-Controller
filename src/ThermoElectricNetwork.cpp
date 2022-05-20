@@ -58,7 +58,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 //#define MQTT_BROKER1 'localhost'
 
 //Nestors laptop mosquitto broker
-#define MQTT_BROKER1 169,254,52,240
+#define MQTT_BROKER1 169,254,199,154
 #define MQTT_BROKER1_PORT 1883
 
 //NTP server address
@@ -258,12 +258,7 @@ void publish_births(){
 
 // Publish the NDATA message with any node metrics that have been updated.
 void publish_node_data(){
-    if (EEPROM.read(0) == 0x01) {
-        m_nodeCalibrated = true;
-    }
-    else {
-        m_nodeCalibrated = false;
-    }
+
     // Publish any updated metrics in the NDATA message
     set_up_next_payload();
     if(!publish_metrics(ARRAY_AND_SIZE(m_broker), nodeDataTopic.c_str(), false,
@@ -547,8 +542,6 @@ void callback_worker(char* topic, byte* payload, unsigned int len){
  * Channel voltages
  * @param the average temperature reading
  */
-
-
 void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp ){
     
     // Store new Channel data, converting from raw Channel values to user units
@@ -564,7 +557,6 @@ void publish_data( int channel_num, float channel_pwr, bool channel_dir, float c
         }
     }
 }
-
 
 /**
  * @brief Updates the NTP object's state, which will periodically sync time
@@ -618,6 +610,13 @@ void setup_bdseq_metrics(void){
  * @return false if there's some failure
  */
 bool network_init(void){
+    extern bool calibrated;
+    if (calibrated) {
+        m_nodeCalibrated = true;
+    }
+    else {
+        m_nodeCalibrated = false;
+    }
     // Set up the metrics arrays holding the node birth/death sequence numbers
     setup_bdseq_metrics();
 

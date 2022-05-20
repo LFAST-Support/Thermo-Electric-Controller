@@ -17,9 +17,8 @@ The beta coefficient of the thermistor (usually 3000-4000)
 #else 
     #error A thermistor value must be defined.
 #endif
-// temp. for nominal resistance (almost always 25 C = 298.15 K)
+// temperature for nominal resistance (almost always 25 C = 298.15 K)
 #define TEMPERATURENOMINAL 298.15   
-
 
 ThermoElectricController::ThermoElectricController() {}
 
@@ -77,7 +76,10 @@ int ThermoElectricController::setPower( const int power ) {
 
 // 0 to 3.3 volts, 12 bits resolution
 // Need to read and average a bunch of these together to beat down the noise...
-float ThermoElectricController::get_Raw_Temperature() {
+float ThermoElectricController::get_Temperature(int channel) {
+  extern Thermistor therm[NUM_TEC];
+  extern bool calibrated;
+
   // read the analog voltage
   int adcCounts = 0;
   //Serial.print("Getting Temperature from pin ");Serial.println( thermistorPin );
@@ -103,21 +105,14 @@ float ThermoElectricController::get_Raw_Temperature() {
   B coefficient for thermistor:  TT7-10KC3-11
   */
   temperature = (1/((1/TEMPERATURENOMINAL) + BCOEFFICIENT*log(thermistance/THERMISTORNOMINAL))) - 273.15;
-  //Serial.printf("Temperature: %f\n", temperature);
-  return temperature;
-}
+  Serial.printf("RawTemperature: %f\n", temperature);
 
-float ThermoElectricController::get_Calibrated_Temp(int i) {
-  extern Thermistor therm[NUM_TEC];
-  extern ThermoElectricController TEC[NUMBER_OF_CHANNELS];
-
-  temperature = (((get_Raw_Temperature() - therm[i].getRaw_low()) * (ref_High - ref_Low)) / 
-                 (therm[i].getRaw_high() - therm[i].getRaw_low()) + ref_Low);
-  Serial.println(therm[i].getRaw_low());
-  Serial.println(therm[i].getRaw_high());
-
-
-  //Serial.printf("Temperature: %f\n", temperature);
+  //If calibration data exists, apply calibration equation
+  if (calibrated) {
+    temperature = (((temperature - therm[channel].getRaw_low()) * (ref_High - ref_Low)) / 
+                  (therm[channel].getRaw_high() - therm[channel].getRaw_low()) + ref_Low);
+    Serial.printf("CalTemperature: %f\n", temperature);
+  }
   return temperature;
 }
 
@@ -129,12 +124,18 @@ bool  ThermoElectricController::getDirection( void ) {
   return dir;
 }
 
-
+/*
+Calibration function, takes reference input from user interface and saves calibration data into 
+teensy EEPROM.
+EEPROM address (0) = calibration flag
+    if address(0) = 0 ; not calibrated
+    if address(0) = 1 ; calibrated
+*/
 bool Thermistor::calibrate( float ref_temp, int tempNum ) {
   Serial.printf("Set temp is %0.2f, calibration begun.\n", ref_temp); 
   extern ThermoElectricController TEC[NUM_TEC];
   extern Thermistor therm[NUM_TEC];  
-  
+  extern bool calibrated;
 
   if (tempNum == 1) {
     eeAddr = 1;
@@ -143,7 +144,7 @@ bool Thermistor::calibrate( float ref_temp, int tempNum ) {
     EEPROM.put(eeAddr, ref_Low);
     eeAddr += sizeof(ref_Low); 
     for (int i = 0; i < NUM_TEC; i++) { 
-      therm[i].raw_Low = TEC[i].get_Raw_Temperature();
+      therm[i].raw_Low = TEC[i].get_Temperature(i);
       EEPROM.put(eeAddr, therm[i].raw_Low);
       eeAddr += sizeof(therm[i].raw_Low);
     }
@@ -155,26 +156,29 @@ bool Thermistor::calibrate( float ref_temp, int tempNum ) {
     EEPROM.put(eeAddr, ref_High);
     eeAddr += sizeof(ref_High); 
     for (int i = 0; i < NUM_TEC; i++) { 
-      therm[i].raw_High = TEC[i].get_Raw_Temperature();
+      therm[i].raw_High = TEC[i].get_Temperature(i);
       EEPROM.put(eeAddr, therm[i].raw_High);
       eeAddr += sizeof(therm[i].raw_High); 
-      therm[i].calibrated = true;
     }
     EEPROM.write(0, 0x01);
+    calibrated = true;
     Serial.println("Calibration complete.");
   } 
   return true;  
 }
+
+//Clear Calibration data; Needs modification
 bool Thermistor::clear_calibration() {
   extern Thermistor therm[NUM_TEC];  
-  EEPROM.write(0, 0x00);
+  extern bool calibrated;
   
   for (int i = 0; i < NUM_TEC; i++) { 
     therm[i].raw_Low = 0;
     therm[i].raw_High = 0;
   }
-
-
+  EEPROM.write(0, 0x00);
+  calibrated = false;
+  return true;
 }
 
 float Thermistor::getRaw_low() {
@@ -193,6 +197,7 @@ void Thermistor::setRaw_high(float high) {
   raw_High = high;
 }
 
+//Loads calibration data if it exists.
 bool Thermistor::load_cal_data() {
   extern Thermistor therm[NUM_TEC];
   float temp_data;
@@ -215,12 +220,7 @@ bool Thermistor::load_cal_data() {
   return true;
 }
 
-
-
-
-
-
-
+//Initialized Module ID hardware
 bool hardwareID_init(){
 
   pinMode(ID_PIN_0,INPUT_PULLUP);
@@ -246,7 +246,6 @@ bool hardwareID_init(){
                 ( pin2 << 2 ) +
                 ( pin1 << 1 ) +
                 ( pin0 << 0 );
-
   delay(10000);
   DebugPrintNoEOL("Hardware ID = ");
   DebugPrint(hardware_id);
@@ -256,7 +255,6 @@ bool hardwareID_init(){
       DebugPrint("invalid board ID detected, check jumpers");
       return false;
   }
-
   return true; //Success
 }
 
