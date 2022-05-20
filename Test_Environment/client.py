@@ -51,8 +51,10 @@ compatible_version   = False
 gui_controls_created = False
 message_seq          = 0
 cal_started = False
+cal_status  = False
+cal_INW     = False
 
-channels = ['1\n', '2\n','3\n', '4\n','5\n', '6\n','7\n', '8\n','9\n', '10\n','11\n', '12\n']
+channels = ['0\n', '1\n', '2\n','3\n', '4\n','5\n', '6\n','7\n', '8\n','9\n', '10\n','11\n']
 powers = ['/\n'] * 12
 directions = ['/\n'] * 12
 temperatures  = ['/\n'] * 12
@@ -84,21 +86,21 @@ class MetricSpec:
         self.timestamp = timestamp_str( None )
 
 Metrics = (
-    [ MetricSpec( None, f'Outputs/Power Channel{channel}',             'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
-    [ MetricSpec( None, f'Outputs/Direction Channel{channel}',        'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
-    [ MetricSpec( None, f'Inputs/Temperature Channel{channel}',      'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +  
+    [ MetricSpec( None, 'bdSeq',                                      'strip to /', False ) ] +
+    [ MetricSpec( None, 'Properties/Calibration Status',              'strip to /', False ) ] +
+    [ MetricSpec( None, 'Properties/Calibration INW',                 'strip to /', False ) ] +
     [ MetricSpec( None, 'Properties/Units',                           'strip to /', True  ) ] +
     [ MetricSpec( None, 'Properties/Firmware Version',                'strip to /', True  ) ] +
     [ MetricSpec( None, 'Properties/Communications Version',          'strip to /', False ) ] +
-    [ MetricSpec( None, 'bdSeq',                                      'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Reboot',                        'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Rebirth',                       'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Next Server',                   'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Calibration Temperature 1',     'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Calibration Temperature 2',     'strip to /', False ) ] +
-    [ MetricSpec( None, 'Properties/Calibration Status',              'strip to /', False ) ] +
-    [ MetricSpec( None, 'Node Control/Calibration INW',               'strip to /', False ) ] +
-    [ MetricSpec( None, 'Node Control/Clear Cal Data',                'strip to /', False ) ]
+    [ MetricSpec( None, 'Node Control/Clear Cal Data',                'strip to /', False ) ] +
+    [ MetricSpec( None, f'Outputs/Power Channel{channel}',            'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
+    [ MetricSpec( None, f'Outputs/Direction Channel{channel}',        'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
+    [ MetricSpec( None, f'Inputs/Temperature Channel{channel}',       'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] 
     )
 
 # Reset the aliases and/or values for all the metrics of the specified device
@@ -464,12 +466,10 @@ def check_birth_death_sequence( payload, is_expected, must_match ):
 
 # Display and/or log the values of the metrics
 def display_metrics( topic, payload, save_to_log ):
-    global channels
     global powers
     global directions
     global temperatures
-    global cal_INW
-    global cal_status
+    global times
 
     # Get the measurement units value
     units = '?'
@@ -479,37 +479,30 @@ def display_metrics( topic, payload, save_to_log ):
             units = metric_spec.value
     except ValueError:
         pass
-    try:
-        metric_spec = find_metric( None, 'Properties/Calibration Status' )
-        if metric_spec.value != None:
-            cal_status = metric_spec.value
-    except ValueError:
-        pass
-    try:
-        metric_spec = find_metric( None, 'Node Control/Calibration INW' )
-        if metric_spec.value != None:
-            cal_INW = metric_spec.value
-    except ValueError:
-        pass
 
     # Set the value string for each metric
     for metric in Metrics:
-        for channel in range(NUM_CHANNELS):
+        for channel in range(12):
             if metric.value == None:
                 metric.value_str = f'{metric.value}'
-            elif (metric.name == ( f'Outputs/Power Channel{channel}')): #for channel in range(12)]:
+                break
+            elif (metric.name == ( f'Outputs/Power Channel{channel}')): # for channel in range(12)):
                 metric.value_str = f'{metric.value}'
                 powers[channel] = f'{metric.value_str}\n'
-            elif (metric.name == ( f'Outputs/Direction Channel{channel}')): # for channel in range(12)]:
+                break
+            elif (metric.name == ( f'Outputs/Direction Channel{channel}')): # for channel in range(12)):
                 metric.value_str = f'{metric.value}'
                 directions[channel] = f'{metric.value_str}\n'
-            elif (metric.name == ( f'Inputs/Temperature Channel{channel}')): # for channel in range(12)]:
-                metric.value_str = f'{metric.value:0.2f} °C'
+                break
+            elif (metric.name == ( f'Inputs/Temperature Channel{channel}')): # for channel in range(12)):
+                metric.value_str = f'{metric.value:.2f} °C'
                 temperatures[channel] = f'{metric.value_str}\n'
                 times[channel] = f'{metric.timestamp}\n'
-            #else:
-                #metric.value_str = f'{metric.value}'
-                #report(f'Unk: {metric.value_str}')
+                break
+        else:
+            metric.value_str = f'{metric.value}'
+            #report(f'Unk: {metric.value_str}')
+
 
     if option_no_GUI:
         if option_show in [ 'changed', 'all' ]:
@@ -547,10 +540,8 @@ LJUST_DIST = 50
 # Display current metric values on the GUI
 def show_data_on_GUI():
     global channels
-    global powers
-    global directions
-    global temperatures
-    global times
+    global status_label
+    global calibration_label
 
     gui_channel = str()
     gui_pwr = str()
@@ -558,10 +549,22 @@ def show_data_on_GUI():
     gui_temp = str()
     gui_time = str()
 
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration Status' )
+        if metric_spec.value != None:
+           status_label.setText(f'Calibrated?: {metric_spec.value}')
+    except ValueError:
+        pass
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration INW' )
+        if metric_spec.value != None:
+            calibration_label.setText(f'Calibration in progress? : {metric_spec.value}')
+    except ValueError:
+        pass
+
     if not gui_controls_created:
         report( 'GUI controls not created - metrics not displayed', error = True, always = True )
         return
-
 
     for channel in range (NUM_CHANNELS) :
         gui_channel += channels[channel]
@@ -687,8 +690,11 @@ def send_cal_command(temp1, temp2, clear):
         if send_simple_node_command( 'Node Control/Calibrated?', True ):
             report( 'Module calibration status requested', always = True )
 
-def send_cal_gui_command(temp1, temp2):
-    if temp2 is None:
+def send_cal_gui_command(temp1, temp2, clear):
+
+    if clear:
+        send_simple_node_command("Node Control/Clear Cal Data", True)
+    elif temp2 is None:
         payload = get_cmd_payload()
         if not add_cal_temp_metric( payload, temp1, 1 ):
             return False
@@ -702,6 +708,8 @@ def send_cal_gui_command(temp1, temp2):
         byte_array = bytearray( payload.SerializeToString() )
         client.publish( NODE_CMD_TOPIC, byte_array, 0, False )
         return True 
+
+
 
 
 # Add a metric to the payload to set the value on a TEC
@@ -787,6 +795,17 @@ for arg in sys.argv[ 1: ]:
         option_module_id = split_arg[ 1 ]
     elif lower_arg == 'reboot':
         option_do_reboot = True
+    elif lower_arg.startswith( 'channel=' ):
+        if option_do_set_channel:
+            report( 'Only one "channel" argument can be specified', error = True, always = True )
+            show_usage()
+        option_do_set_channel = True
+        split_arg = arg.split( '=', 2 )
+        if len( split_arg ) != 3:
+            report( 'Invalid "channel" option, must be of the form "channel=NUMBER=VALUE"', error = True, always = True )
+            show_usage()
+        option_channel_number  = split_arg[ 1 ]
+        option_channel_value = split_arg[ 2 ]
     elif lower_arg.startswith( 'show=' ):
         split_arg = arg.split( '=', 1 )
         option_show = split_arg[ 1 ].lower()
@@ -862,13 +881,17 @@ def cal_button_handler ():
         report('Calibrate 1 INW')
         set_cal_label.setText('2) Place thermistors in a high reference temperature environement (100 C).')
         set_cal_button.setText('Calibrate High')
-        send_cal_gui_command( set_cal_low_input.text(), None )
+        send_cal_gui_command( set_cal_low_input.text(), None, False )
     else:
         report('Calibrate 2 INW')
         set_cal_label.setText('1) Place thermistors in a low reference temperature environement (0 C).')
         set_cal_button.setText('Calibrate Low')
-        send_cal_gui_command( None, set_cal_low_input.text() )
+        send_cal_gui_command( None, set_cal_low_input.text(), False )
     option_calibrate = not option_calibrate
+
+def clear_cal_button_handler():
+    send_cal_gui_command(None, None, True)
+
 
 # Select which UI to use
 if option_no_GUI:
@@ -930,26 +953,18 @@ if option_no_GUI:
                 metric.value_str = f'{metric.value}'
                 metric.timestamp_str = f'{metric.timestamp}'
                 print( f'{metric.display_name} at {metric.timestamp_str} = {metric.value_str}' )
-                metric = find_metric(None, 'Node Control/Calibration INW')
+                metric = find_metric(None, 'Properties/Calibration INW')
                 metric.value_str = f'{metric.value}'
                 metric.timestamp_str = f'{metric.timestamp}'
                 print( f'{metric.display_name} at {metric.timestamp_str} = {metric.value_str}' )
-        elif lower_arg.startswith( 'channel=' ):
-            if option_do_set_channel:
-                report( 'Only one "channel" argument can be specified', error = True, always = True )
-                show_usage()
+        elif command[ 0 ] == 'channel':
+            if len( command ) != 3:
+                report( 'Invalid use, must be of the form "channel NUMBER VALUE"', error = True, always = True )
+                continue
             option_do_set_channel = True
-            split_arg = arg.split( '=', 2 )
-            if len( split_arg ) != 3:
-                report( 'Invalid "channel" option, must be of the form "channel=NUMBER=VALUE"', error = True, always = True )
-                show_usage()
-            option_channel_number  = split_arg[ 1 ]
-            option_channel_voltage = split_arg[ 2 ]
+            option_channel_number  = command[ 1 ]
+            option_channel_value = command[ 2 ]
             set_channel(option_channel_number, option_channel_value)
-
-                            
-
-
         elif command[ 0 ] == 'help' or command[ 0 ] == 'h' or command[ 0 ] == '?':
             print( f'Thermistor Mux Client v{APP_VERSION} connected to Module {option_module_id}' )
             print( f'Commands:' )
@@ -1082,35 +1097,31 @@ else:
     set_TEC_layout.addWidget( set_TEC_button,           2, 1 )
     v_box_layout.addWidget( center_widget( set_TEC_controls ) )
 
-
-
-
-    # Controls to calibrate Thermistors
+    #Calibration Routine Layout
     set_Calibration_label = QLabel( f'Calibration' )
     v_box_layout.addWidget( center_widget( set_Calibration_label ) )
-    #set_calibration_controls = QWidget()
-    #set_calibration_layout = QGridLayout()
-    #set_calibration_controls.setLayout( set_calibration_layout )
 
-    cal_status  = False
-    cal_INW     = False
-    v_box_layout.addWidget( QLabel( f'Calibrated? : {cal_status} ' ), 0, Qt.AlignCenter )
-    #set_calibration_layout.addWidget( cal_status,  0, 1 )
-    v_box_layout.addWidget( QLabel( f'Calibration in progress? : {cal_INW}' ), 0, Qt.AlignCenter )
-    #set_calibration_layout.addWidget( cal_INW,  1, 1 )
+    #Current Calibration Status
+    status_label = QLabel('')
+    calibration_label = QLabel('')
+    v_box_layout.addWidget( status_label, 0, Qt.AlignCenter )
+    v_box_layout.addWidget( calibration_label, 0, Qt.AlignCenter )
 
+    # Clear Calibration button
+    clear_cal_button = QPushButton( 'Clear Calibration' )
+    clear_cal_button.clicked.connect( clear_cal_button_handler )
+    v_box_layout.addWidget( clear_cal_button, 0, Qt.AlignCenter )
 
+    #Spacer
     line_space = QLabel('')
     v_box_layout.addWidget( center_widget( line_space ) )
 
-
-    # Part 1 of calibration; reference low data gathering
+    # Calibration Routine 
     set_cal_label = QLabel('1) Place thermistors in a low reference temperature environement (0 C).')
     v_box_layout.addWidget( center_widget( set_cal_label ) )
     set_cal_controls = QWidget()
     set_cal_layout = QGridLayout()
     set_cal_controls.setLayout( set_cal_layout )
-
 
     # Calibration reference temp entry
     set_cal_layout.addWidget( QLabel( 'Enter reference temperature:' ),   3, 0 )
