@@ -32,7 +32,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 // Public functions
 bool network_init();
 void check_brokers();
-void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp );
+void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp, float seebeck );
 bool update_ntp();
 unsigned long get_current_time();
 unsigned long long get_current_time_millis();

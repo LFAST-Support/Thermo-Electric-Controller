@@ -18,6 +18,7 @@ Adapted from SOML VCM firmware https://github.com/Steward-Observatory-ETS/soml_c
 Adapted from python client example at https://github.com/eclipse/tahu
 """
 
+from distutils.log import error
 from multiprocessing.connection import wait
 from os import times
 import time
@@ -50,11 +51,14 @@ compatible_version   = False
 gui_controls_created = False
 message_seq          = 0
 cal_started = False
+cal_status  = False
+cal_INW     = False
 
-channels = ['1\n', '2\n', '3\n', '4\n', '5\n', '6\n', '7\n', '8\n', '8\n', '10\n', '11\n', '12\n'] 
+channels = ['0\n', '1\n', '2\n','3\n', '4\n','5\n', '6\n','7\n', '8\n','9\n', '10\n','11\n']
 powers = ['/\n'] * 12
 directions = ['/\n'] * 12
 temperatures  = ['/\n'] * 12
+seebecks = ['/\n'] * 12
 times = ['/\n'] * 12
 
 date_string = datetime.datetime.now().strftime( '%Y-%m-%d' )
@@ -83,21 +87,22 @@ class MetricSpec:
         self.timestamp = timestamp_str( None )
 
 Metrics = (
-    [ MetricSpec( None, f'Inputs/Power Channel{channel}',         'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
-    [ MetricSpec( None, f'Outputs/Direction Channel{channel}',    'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
-    [ MetricSpec( None, f'Outputs/Temperature Channel{channel}',  'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +  
+    [ MetricSpec( None, 'bdSeq',                                      'strip to /', False ) ] +
+    [ MetricSpec( None, 'Properties/Calibration Status',              'strip to /', False ) ] +
+    [ MetricSpec( None, 'Properties/Calibration INW',                 'strip to /', False ) ] +
     [ MetricSpec( None, 'Properties/Units',                           'strip to /', True  ) ] +
     [ MetricSpec( None, 'Properties/Firmware Version',                'strip to /', True  ) ] +
     [ MetricSpec( None, 'Properties/Communications Version',          'strip to /', False ) ] +
-    [ MetricSpec( None, 'bdSeq',                                      'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Reboot',                        'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Rebirth',                       'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Next Server',                   'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Calibration Temperature 1',     'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Calibration Temperature 2',     'strip to /', False ) ] +
-    [ MetricSpec( None, 'Properties/Calibration Status',              'strip to /', False ) ] +
-    [ MetricSpec( None, 'Node Control/Calibration INW',               'strip to /', False ) ] +
-    [ MetricSpec( None, 'Node Control/Clear Cal Data',                'strip to /', False ) ]
+    [ MetricSpec( None, 'Node Control/Clear Cal Data',                'strip to /', False ) ] +
+    [ MetricSpec( None, f'Inputs/Power Channel{channel}',             'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
+    [ MetricSpec( None, f'Outputs/Direction Channel{channel}',        'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
+    [ MetricSpec( None, f'Outputs/Temperature Channel{channel}',      'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
+    [ MetricSpec( None, f'Outputs/Seebeck Channel{channel}',          'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] 
     )
 
 # Reset the aliases and/or values for all the metrics of the specified device
@@ -148,14 +153,13 @@ def update_metrics( device, payload, set_alias = False ):
             else:
                 report( f'Unexpected data type {metric.datatype} for {metric_spec.name}', error = True )
                 continue
-
             metric_spec.timestamp = timestamp_str( metric.timestamp )
         except ValueError:
             report( f'Unrecognized metric: device={device}, name="{metric.name}", alias={metric.alias}', error = True )
 
 # Display how this program should be called, then exit
 def show_usage():
-    print( f'Thermistor Mux Client v{APP_VERSION}' )
+    print( f'Thermo_Electric Controller Client v{APP_VERSION}' )
     print( f'Usage: {sys.argv[ 0 ]} [no_gui] [broker=[BROKER_IP][=BROKER_PORT]] [module=MODULE_ID] [reboot] [show=SHOW_WHAT] [log] [exit]' )
     print( f'where no_gui = run the command-line interface instead of the GUI' )
     print( f'      BROKER_IP = hostname or IP address of MQTT broker (default {DEFAULT_BROKER_URL})' )
@@ -186,6 +190,13 @@ def report( msg, error = False, always = False ):
         if error:
             msg = '*** ' + msg + ' ***'
         print( msg )
+    else:
+        ### Causes segmentation fault?
+        ###if error:
+        ###    diagnostic_text.setCurrentCharFormat( error_format )
+        diagnostic_text.appendPlainText( msg )
+        diagnostic_text.centerCursor()
+        ###diagnostic_text.setCurrentCharFormat( normal_format )
 
 # Return the topic for a particular node message
 def node_topic( module_id, message_type ):
@@ -283,6 +294,7 @@ def on_connect( client, userdata, flags, rc ):
     # lose the connection and reconnect then subscriptions will be renewed and
     # the Rebirth command will be reissued.
     connect_to_module( client )
+
 
 # Callback called when an MQTT message is received
 def on_message( client, userdata, msg ):
@@ -456,6 +468,12 @@ def check_birth_death_sequence( payload, is_expected, must_match ):
 
 # Display and/or log the values of the metrics
 def display_metrics( topic, payload, save_to_log ):
+    global powers
+    global directions
+    global temperatures
+    global seebecks
+    global times
+
     # Get the measurement units value
     units = '?'
     try:
@@ -467,20 +485,31 @@ def display_metrics( topic, payload, save_to_log ):
 
     # Set the value string for each metric
     for metric in Metrics:
-        for channel in range(NUM_CHANNELS):
+        for channel in range(12):
             if metric.value == None:
                 metric.value_str = f'{metric.value}'
-            elif [metric.name == ( f'Inputs/Power Channel{channel}')]: #for channel in range(12)]:
+                break
+            elif (metric.name == ( f'Inputs/Power Channel{channel}')): # for channel in range(12)):
                 metric.value_str = f'{metric.value}'
-                powers[channel] = f'{metric.value_str}'
-            elif [metric.name == ( f'Outputs/Direction Channel{channel}')]: # for channel in range(12)]:
+                powers[channel] = f'{metric.value_str}\n'
+                break
+            elif (metric.name == ( f'Outputs/Direction Channel{channel}')): # for channel in range(12)):
                 metric.value_str = f'{metric.value}'
-                channels[channel] = f'{metric.value_str}'
-            elif [metric.name == ( f'Outputs/Temperature Channel{channel}')]: # for channel in range(12)]:
-                metric.value_str = f'{metric.value} °C'
-                temperatures[channel] = f'{metric.value_str}'
-            else:
-                metric.value_str = f'{metric.value}'
+                directions[channel] = f'{metric.value_str}\n'
+                break
+            elif (metric.name == ( f'Outputs/Temperature Channel{channel}')): # for channel in range(12)):
+                metric.value_str = f'{metric.value:.2f} °C'
+                temperatures[channel] = f'{metric.value_str}\n'
+                times[channel] = f'{metric.timestamp}\n'
+                break
+            elif (metric.name == ( f'Outputs/Seebeck Channel{channel}')): # for channel in range(12)):
+                metric.value_str = f'{metric.value:.2f} V'
+                seebecks[channel] = f'{metric.value_str}\n'
+                times[channel] = f'{metric.timestamp}\n'
+                break
+        else:
+            metric.value_str = f'{metric.value}'
+            #report(f'Unk: {metric.value_str}')
 
     if option_no_GUI:
         if option_show in [ 'changed', 'all' ]:
@@ -501,7 +530,6 @@ def show_data_on_command_line( payload ):
             payload_metric_names.append( metric.name )
             payload_metric_aliases.append( metric.alias )
 
-
     # Print out the desired metrics
     for metric in Metrics:
         # If we're only displaying the metrics in the latest payload, skip this
@@ -513,33 +541,57 @@ def show_data_on_command_line( payload ):
         print( f'{metric.display_name} at {metric.timestamp} = {metric.value_str}' )
         
 
+
 LJUST_DIST = 50
 
 # Display current metric values on the GUI
 def show_data_on_GUI():
-
-    if not gui_controls_created:
-        report( 'GUI controls not created - metrics not displayed', error = True, always = True )
-        return
+#    global channels
+    global status_label
+    global calibration_label
+    global option_thermistor
 
     gui_channel = str()
     gui_pwr = str()
     gui_dir = str()
     gui_temp = str()
+    gui_seebeck = str()
     gui_time = str()
 
-    for channel in range(NUM_CHANNELS):
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration Status' )
+        if metric_spec.value != None:
+           status_label.setText(f'Calibrated?: {metric_spec.value}')
+    except ValueError:
+        pass
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration INW' )
+        if metric_spec.value != None:
+            calibration_label.setText(f'Calibration in progress? : {metric_spec.value}')
+    except ValueError:
+        pass
+
+    if not gui_controls_created:
+        report( 'GUI controls not created - metrics not displayed', error = True, always = True )
+        return
+
+    for channel in range (NUM_CHANNELS) :
         gui_channel += channels[channel]
         gui_pwr += powers[channel]
         gui_dir += directions[channel]
         gui_temp += temperatures[channel]
+        gui_seebeck += seebecks[channel]
         gui_time += times[channel]
 
-    channel_outputs.setText( gui_channel )
-    power_outputs.setText( gui_pwr )
-    direction_outputs.setText( gui_dir )
-    temperature_outputs.setText( gui_temp )
-    time_outputs.setText( gui_time )
+    channel_outputs.setText(gui_channel)
+    power_outputs.setText(gui_pwr)
+    direction_outputs.setText(gui_dir)
+    if (option_thermistor):
+        thermistor_outputs.setText(gui_temp)
+    else:
+        thermistor_outputs.setText(gui_seebeck)
+    time_outputs.setText(gui_time)
+
 
 def log_data_to_CSV( timestamp, topic ):
     field_names = []
@@ -578,6 +630,7 @@ def add_metric_as_alias( payload, device, metric_name, metric_type, metric_value
         # Found the alias for the metric, so use that instead of its name
         metric_name = None
         metric_alias = metric.alias
+    report(metric_name)
     addMetric( payload, metric_name, metric_alias, metric_type, metric_value )
 
 # Send an NCMD message with a single Boolean metric set to True
@@ -594,15 +647,13 @@ def send_simple_node_command( metric_name, value ):
 
 # Ask the node to send out its birth messages
 def request_rebirth():
-    send_simple_node_command( 'Node Control/Rebirth', True )
+    if send_simple_node_command( 'Node Control/Rebirth', True ):
+        report('Rebirth requested')
 
 # Ask the node to reboot
 def reboot_module():
     if send_simple_node_command( 'Node Control/Reboot', True ):
         report( 'Module commanded to reboot', always = True )
-
-def reboot_button_handler():
-    reboot_module()
 
 # Add a metric to the payload to set the voltage on a TEC
 def add_cal_temp_metric( payload, cal_temp, tempNum ):
@@ -649,8 +700,11 @@ def send_cal_command(temp1, temp2, clear):
         if send_simple_node_command( 'Node Control/Calibrated?', True ):
             report( 'Module calibration status requested', always = True )
 
-def send_cal_gui_command(temp1, temp2):
-    if temp2 is None:
+def send_cal_gui_command(temp1, temp2, clear):
+
+    if clear:
+        send_simple_node_command("Node Control/Clear Cal Data", True)
+    elif temp2 is None:
         payload = get_cmd_payload()
         if not add_cal_temp_metric( payload, temp1, 1 ):
             return False
@@ -664,7 +718,6 @@ def send_cal_gui_command(temp1, temp2):
         byte_array = bytearray( payload.SerializeToString() )
         client.publish( NODE_CMD_TOPIC, byte_array, 0, False )
         return True 
-
 
 # Add a metric to the payload to set the value on a TEC
 def add_channel_metric( payload, channel_number, value ):
@@ -684,13 +737,16 @@ def add_channel_metric( payload, channel_number, value ):
         return False
     try:
         value = float( value )
-    except ValueError:
+        report(f'{value}')
+    except ValueError: 
+        return False
+    if value < -100 or value > 100:
         report( f'Invalid channel VALUE, must be a number from -100 to 100: "{value}"', error = True, always = True )
         return False
     try:
-        add_metric_as_alias( payload, Any, f'Outputs/Channel{channel_number} Power', MetricDataType.Float, value )
+        add_metric_as_alias( payload, None, f'Outputs/Power Channel{channel_number}', MetricDataType.Float, value )
     except ValueError:
-        report( f'Unrecognized metric: "Outputs/Channel{channel_number} Power"', error = True, always = True )
+        report( f'Unrecognized metric: "Outputs/Power Channel{channel_number}"', error = True, always = True )
         return False
     return True
 
@@ -721,7 +777,9 @@ option_calibrate = False
 option_do_set_channel = False
 option_channel_number = 0
 option_channel_value = 0.0
+option_thermistor = False
 
+NUM_TEC = 12
 MIN_TEC_VALUE = -100
 MAX_TEC_VALUE = 100
 
@@ -745,6 +803,17 @@ for arg in sys.argv[ 1: ]:
         option_module_id = split_arg[ 1 ]
     elif lower_arg == 'reboot':
         option_do_reboot = True
+    elif lower_arg.startswith( 'channel=' ):
+        if option_do_set_channel:
+            report( 'Only one "channel" argument can be specified', error = True, always = True )
+            show_usage()
+        option_do_set_channel = True
+        split_arg = arg.split( '=', 2 )
+        if len( split_arg ) != 3:
+            report( 'Invalid "channel" option, must be of the form "channel=NUMBER=VALUE"', error = True, always = True )
+            show_usage()
+        option_channel_number  = split_arg[ 1 ]
+        option_channel_value = split_arg[ 2 ]
     elif lower_arg.startswith( 'show=' ):
         split_arg = arg.split( '=', 1 )
         option_show = split_arg[ 1 ].lower()
@@ -801,6 +870,19 @@ def change_module_button_handler():
 def reboot_button_handler():
     reboot_module()
 
+def thermistor_button_handler():
+    global option_thermistor
+    global thermistor_label
+
+    if (option_thermistor):
+        thermistor_label.setText('Thermistor Temp')
+        thermistor_button.setText( 'Show Seebeck Voltage' )
+        option_thermistor = False
+    else:
+        thermistor_label.setText( 'Seebeck Voltage' )
+        thermistor_button.setText( 'Show Thermistor Temp' )
+        option_thermistor = True
+
 def log_button_handler():
     global option_log
     option_log = not option_log
@@ -820,13 +902,17 @@ def cal_button_handler ():
         report('Calibrate 1 INW')
         set_cal_label.setText('2) Place thermistors in a high reference temperature environement (100 C).')
         set_cal_button.setText('Calibrate High')
-        #send_cal_gui_command( set_cal_low_input, None )
+        send_cal_gui_command( set_cal_low_input.text(), None, False )
     else:
         report('Calibrate 2 INW')
         set_cal_label.setText('1) Place thermistors in a low reference temperature environement (0 C).')
         set_cal_button.setText('Calibrate Low')
-        #send_cal_gui_command( None, set_cal_low_input )
+        send_cal_gui_command( None, set_cal_low_input.text(), False )
     option_calibrate = not option_calibrate
+
+def clear_cal_button_handler():
+    send_cal_gui_command(None, None, True)
+
 
 # Select which UI to use
 if option_no_GUI:
@@ -888,25 +974,18 @@ if option_no_GUI:
                 metric.value_str = f'{metric.value}'
                 metric.timestamp_str = f'{metric.timestamp}'
                 print( f'{metric.display_name} at {metric.timestamp_str} = {metric.value_str}' )
-                metric = find_metric(None, 'Node Control/Calibration INW')
+                metric = find_metric(None, 'Properties/Calibration INW')
                 metric.value_str = f'{metric.value}'
                 metric.timestamp_str = f'{metric.timestamp}'
                 print( f'{metric.display_name} at {metric.timestamp_str} = {metric.value_str}' )
-        elif lower_arg.startswith( 'channel=' ):
-            if option_do_set_channel:
-                report( 'Only one "channel" argument can be specified', error = True, always = True )
-                show_usage()
+        elif command[ 0 ] == 'channel':
+            if len( command ) != 3:
+                report( 'Invalid use, must be of the form "channel NUMBER VALUE"', error = True, always = True )
+                continue
             option_do_set_channel = True
-            split_arg = arg.split( '=', 2 )
-            if len( split_arg ) != 3:
-                report( 'Invalid "channel" option, must be of the form "channel=NUMBER=VALUE"', error = True, always = True )
-                show_usage()
-            option_channel_number  = split_arg[ 1 ]
-            option_channel_voltage = split_arg[ 2 ]
-
-                            
-
-
+            option_channel_number  = command[ 1 ]
+            option_channel_value = command[ 2 ]
+            set_channel(option_channel_number, option_channel_value)
         elif command[ 0 ] == 'help' or command[ 0 ] == 'h' or command[ 0 ] == '?':
             print( f'Thermistor Mux Client v{APP_VERSION} connected to Module {option_module_id}' )
             print( f'Commands:' )
@@ -978,29 +1057,41 @@ else:
     reboot_button.clicked.connect( reboot_button_handler )
     v_box_layout.addWidget( center_widget( reboot_button ) )
 
+    # The Seebeck/ Thermistor button
+    if (option_thermistor):
+        thermistor_button = QPushButton( 'Show Seebeck Voltage' )
+    else:
+        thermistor_button = QPushButton( 'Show Thermistor Temp' )
+    thermistor_button.clicked.connect( thermistor_button_handler )
+    v_box_layout.addWidget( center_widget(thermistor_button) )
+
     # Data received from the module
     outputs = QWidget()
     output_grid = QGridLayout()
     outputs.setLayout( output_grid )
 
     # Node data
-    output_grid.addWidget( QLabel( 'TEC Channel' ),        0, 0 )
+    output_grid.addWidget( QLabel( 'TEC Channel' ), 0, 0 )
     output_grid.addWidget( QLabel( 'Power' ),       0, 1 )
     output_grid.addWidget( QLabel( 'Direction' ),   0, 2 )
-    output_grid.addWidget( QLabel( 'Temperature' ), 0, 3 )
+    thermistor_label = QLabel('')
+    if (option_thermistor):
+        thermistor_label.setText('Thermistor Temp')
+    else:
+        thermistor_label.setText('Seebeck Voltage')
+    output_grid.addWidget( thermistor_label, 0, 3 )
     output_grid.addWidget( QLabel( 'Timestamp' ),   0, 4 )
+  
     channel_outputs  =     QLabel( '' )
     power_outputs  =       QLabel( '' )
     direction_outputs  =   QLabel( '' )
-    temperature_outputs  = QLabel( '' )
+    thermistor_outputs =   QLabel( '' )
     time_outputs  =        QLabel( '' )
     output_grid.addWidget( channel_outputs,  1, 0 )
     output_grid.addWidget( power_outputs, 1, 1 )
     output_grid.addWidget( direction_outputs, 1, 2 )
-    output_grid.addWidget( temperature_outputs, 1, 3 )
+    output_grid.addWidget( thermistor_outputs, 1, 3 )
     output_grid.addWidget( time_outputs,  1, 4 )
-
-
 
     v_box_layout.addWidget( outputs )
 
@@ -1024,11 +1115,11 @@ else:
     set_TEC_layout.addWidget( QLabel( 'TEC Number' ),   0, 0 )
     set_TEC_Number_input = QLineEdit( '' )
     set_TEC_layout.addWidget( set_TEC_Number_input,     0, 1 )
-    set_TEC_layout.addWidget( QLabel( f'(0-{NUM_CHANNELS - 1}, or "all" for all TECs)' ), 0, 2 )
+    set_TEC_layout.addWidget( QLabel( f'(0-{NUM_TEC - 1}, or "all" for all TECs)' ), 0, 2 )
 
     # TEC Voltage entry
     set_TEC_layout.addWidget( QLabel( 'TEC Value' ),  1, 0 )
-    set_TEC_value_input = QLineEdit( '1.0' )
+    set_TEC_value_input = QLineEdit( '0.0' )
     set_TEC_layout.addWidget( set_TEC_value_input,    1, 1 )
     set_TEC_layout.addWidget( QLabel( f'({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f}, or "random")' ), 1, 2 )
 
@@ -1038,34 +1129,48 @@ else:
     set_TEC_layout.addWidget( set_TEC_button,           2, 1 )
     v_box_layout.addWidget( center_widget( set_TEC_controls ) )
 
-
-    # Controls to calibrate Thermistors
+    #Calibration Routine Layout
     set_Calibration_label = QLabel( f'Calibration' )
     v_box_layout.addWidget( center_widget( set_Calibration_label ) )
 
-    # Part 1 of calibration; reference low data gathering
+    #Current Calibration Status
+    status_label = QLabel('')
+    calibration_label = QLabel('')
+    v_box_layout.addWidget( status_label, 0, Qt.AlignCenter )
+    v_box_layout.addWidget( calibration_label, 0, Qt.AlignCenter )
+
+    # Clear Calibration button
+    clear_cal_button = QPushButton( 'Clear Calibration' )
+    clear_cal_button.clicked.connect( clear_cal_button_handler )
+    v_box_layout.addWidget( clear_cal_button, 0, Qt.AlignCenter )
+
+    #Spacer
+    line_space = QLabel('')
+    v_box_layout.addWidget( center_widget( line_space ) )
+
+    # Calibration Routine 
     set_cal_label = QLabel('1) Place thermistors in a low reference temperature environement (0 C).')
     v_box_layout.addWidget( center_widget( set_cal_label ) )
     set_cal_controls = QWidget()
-    set_Calibration_layout = QGridLayout()
-    set_cal_controls.setLayout( set_Calibration_layout )
+    set_cal_layout = QGridLayout()
+    set_cal_controls.setLayout( set_cal_layout )
 
     # Calibration reference temp entry
-    set_Calibration_layout.addWidget( QLabel( 'Enter reference temperature:' ),   0, 0 )
+    set_cal_layout.addWidget( QLabel( 'Enter reference temperature:' ),   3, 0 )
     set_cal_low_input = QLineEdit( '' )
-    set_Calibration_layout.addWidget( set_cal_low_input,     0, 1 )
-    set_Calibration_layout.addWidget( QLabel( f'degrees C' ), 0, 2 )
+    set_cal_layout.addWidget( set_cal_low_input,     3, 1 )
+    set_cal_layout.addWidget( QLabel( f'degrees C' ), 3, 2 )
 
     # Calibrate button
     set_cal_button = QPushButton( 'Calibrate Low' )
     set_cal_button.clicked.connect( cal_button_handler )
-    set_Calibration_layout.addWidget( set_cal_button,           0, 3 )
+    set_cal_layout.addWidget( set_cal_button,           3, 3 )
     v_box_layout.addWidget( center_widget( set_cal_controls ) )
 
     # The diagnostic text view
     diagnostic_text = QPlainTextEdit()
     diagnostic_text.setReadOnly( True )
-    diagnostic_text.setMaximumBlockCount( 500 )
+    diagnostic_text.setMaximumBlockCount( 1000 )
     normal_format = diagnostic_text.currentCharFormat()
     error_format = QTextCharFormat()
     error_format.setForeground( Qt.red )
@@ -1074,7 +1179,7 @@ else:
     gui_controls_created = True
 
     # Populate the data widgets with the full list of metrics
-    display_metrics( None, None, False )
+    display_metrics( Any, Payload, False )
 
     # Run the GUI
     main_window.show()

@@ -22,7 +22,7 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
 
 
 
-struct tec_pins {
+struct tec_config {
   int dirPin;
   int pwmPin;
   int thermistorPin;
@@ -30,25 +30,24 @@ struct tec_pins {
   int minimum_percent ; // the Diodes, inc parts only go from about 15 percent to 100 percent
 };
 
-struct tec_pins pins[] =
-  {
-   // dir, pwm, thermistor
-   {12,0,23,0,15},
-   {24,1,22,0,15},
-   {25,2,21,0,15},
-   {26,3,20,0,0},
-   {27,4,19,0,0},
-   {28,5,18,0,0},
-   {29,6,17,0,0},
-   {30,7,16,0,0},
-   {31,8,15,0,0},
-   {32,9,14,0,0},
-   {37,10,41,0,0},
-   {36,11,40,0,0},
-  };
+struct tec_config tec_cfg[]=
+{
+  // dir, pwm, thermistor or seebeck, min
+  {12,0,23,0,15},
+  {24,1,22,0,15},
+  {25,2,21,0,15},
+  {26,3,20,0,0},
+  {27,4,19,0,0},
+  {28,5,18,0,0},
+  {29,6,17,0,0},
+  {30,7,16,0,0},
+  {31,8,15,0,0},
+  {32,9,14,0,0},
+  {37,10,41,0,0},
+  {36,11,40,0,0},
+};
 
 /*
- 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 41, 40
  ******************
  * End Configure
  ******************/
@@ -70,26 +69,27 @@ void setup() {
     therm->load_cal_data();
     calibrated = true;
   }
+  bool setup_successful = hardwareID_init() && network_init();
 
   //setup the TECs
-  //delay(10000);
+  delay(10000);
   for (int i = 0; i < NUM_TEC; i++ ) {
-    TEC[i].begin( pins[i].dirPin, pins[i].pwmPin, pins[i].thermistorPin );
+    TEC[i].begin( tec_cfg[i].dirPin, tec_cfg[i].pwmPin, tec_cfg[i].thermistorPin, 
+                  tec_cfg[i].thermistor, tec_cfg[i].minimum_percent );
   }
+  Serial.print("Configured "); Serial.print(NUM_TEC); Serial.println(" TEC current controllers");
+  delay(1000);
 
   //Setup MQTT protocol, connect to broker
-  bool setup_successful = hardwareID_init() && network_init();
   if(setup_successful){
     Serial.println("Setup successful.");
-    delay(13000); //Wait for network connection to settle
     check_brokers();
   }
   else {
     Serial.println("Setup Failed.");
   }
 
-  Serial.print("Configured "); Serial.print(NUM_TEC); Serial.println(" TEC current controllers");
-  delay(1000);
+
 }
 
 void loop() {
@@ -107,7 +107,7 @@ void loop() {
       }
       else {
         */
-        publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Temperature(i));
+        publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Temperature(i), TEC[i].getSeebeck());
 
       //}
       check_brokers();

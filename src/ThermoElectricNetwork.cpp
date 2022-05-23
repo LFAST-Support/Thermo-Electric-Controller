@@ -58,7 +58,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 //#define MQTT_BROKER1 'localhost'
 
 //Nestors laptop mosquitto broker
-#define MQTT_BROKER1 169,254,199,154
+#define MQTT_BROKER1 169,254,196,219
 #define MQTT_BROKER1_PORT 1883
 
 //NTP server address
@@ -116,6 +116,7 @@ static const char *m_units            = "/" ;// The user units
 static float m_Channel_pwr[NUMBER_OF_CHANNELS] = {0.00};
 static bool m_Channel_dir[NUMBER_OF_CHANNELS] = {false};
 static float m_Channel_temp[NUMBER_OF_CHANNELS] = {0.00};
+static float m_Channel_Seebeck[NUMBER_OF_CHANNELS] = {0.00};
 
 
 // Alias numbers for each of the node metrics
@@ -168,6 +169,18 @@ enum NodeMetricAlias {
     NMA_Channel9_temp,
     NMA_Channel10_temp,
     NMA_Channel11_temp,
+    NMA_Channel0_Seebeck,
+    NMA_Channel1_Seebeck,
+    NMA_Channel2_Seebeck,
+    NMA_Channel3_Seebeck,
+    NMA_Channel4_Seebeck,
+    NMA_Channel5_Seebeck,
+    NMA_Channel6_Seebeck,
+    NMA_Channel7_Seebeck,
+    NMA_Channel8_Seebeck,
+    NMA_Channel9_Seebeck,
+    NMA_Channel10_Seebeck,
+    NMA_Channel11_Seebeck,
     EndNodeMetricAlias
 };
 
@@ -181,29 +194,29 @@ static MetricSpec bdseqMetrics[NUM_BROKERS][NUM_ELEM(bdseqMetricsTemplate)];
 
 // All node metrics
 static MetricSpec NodeMetrics[] = {
-    {"Properties/Communications Version",         NMA_CommsVersion,           false, METRIC_DATA_TYPE_INT64,   &m_commsVersion,           false, 0},
-    {"Properties/Firmware Version",               NMA_FirmwareVersion,        false, METRIC_DATA_TYPE_STRING,  &m_firmwareVersion,        false, 0},
-    {"Properties/Units",                          NMA_Units,                  false, METRIC_DATA_TYPE_STRING,  &m_units,                  false, 0},
-    {"Properties/Calibration INW",                NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrationINW,     false, 0},
-    {"Properties/Calibration Status",             NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeCalibrated,         false, 0},
-    {"Node Control/Reboot",                       NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeReboot,             false, 0},
-    {"Node Control/Rebirth",                      NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeRebirth,            false, 0},
-    {"Node Control/Next Server",                  NMA_NextServer,             true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeNextServer,         false, 0},
-    {"Node Control/Clear Cal Data",               NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,  &m_nodeClearCal,           false, 0},
-    {"Node Control/Calibration Temperature 1",    NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp1,               false, 0},        
-    {"Node Control/Calibration Temperature 2",    NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,    &m_calTemp2,               false, 0},    
-    {"Outputs/Power Channel0",                    NMA_Channel0_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[0],         false, 0},
-    {"Outputs/Power Channel1",                    NMA_Channel1_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[1],         false, 0},
-    {"Outputs/Power Channel2",                    NMA_Channel2_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[2],         false, 0},
-    {"Outputs/Power Channel3",                    NMA_Channel3_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[3],         false, 0},
-    {"Outputs/Power Channel4",                    NMA_Channel4_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[4],         false, 0},
-    {"Outputs/Power Channel5",                    NMA_Channel5_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[5],         false, 0},
-    {"Outputs/Power Channel6",                    NMA_Channel6_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[6],         false, 0},
-    {"Outputs/Power Channel7",                    NMA_Channel7_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[7],         false, 0},
-    {"Outputs/Power Channel8",                    NMA_Channel8_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[8],         false, 0},
-    {"Outputs/Power Channel9",                    NMA_Channel9_pwr,           true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[9],         false, 0},
-    {"Outputs/Power Channel10",                   NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[10],        false, 0},
-    {"Outputs/Power Channel11",                   NMA_Channel11_pwr,          true, METRIC_DATA_TYPE_FLOAT,    &m_Channel_pwr[11],        false, 0},
+    {"Properties/Communications Version",         NMA_CommsVersion,           false, METRIC_DATA_TYPE_INT64,     &m_commsVersion,           false, 0},
+    {"Properties/Firmware Version",               NMA_FirmwareVersion,        false, METRIC_DATA_TYPE_STRING,    &m_firmwareVersion,        false, 0},
+    {"Properties/Units",                          NMA_Units,                  false, METRIC_DATA_TYPE_STRING,    &m_units,                  false, 0},
+    {"Properties/Calibration INW",                NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeCalibrationINW,     false, 0},
+    {"Properties/Calibration Status",             NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeCalibrated,         false, 0},
+    {"Node Control/Reboot",                       NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeReboot,             false, 0},
+    {"Node Control/Rebirth",                      NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeRebirth,            false, 0},
+    {"Node Control/Next Server",                  NMA_NextServer,             true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeNextServer,         false, 0},
+    {"Node Control/Clear Cal Data",               NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeClearCal,           false, 0},
+    {"Node Control/Calibration Temperature 1",    NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,      &m_calTemp1,               false, 0},        
+    {"Node Control/Calibration Temperature 2",    NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,      &m_calTemp2,               false, 0},    
+    {"Inputs/Power Channel0",                     NMA_Channel0_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[0],         false, 0},
+    {"Inputs/Power Channel1",                     NMA_Channel1_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[1],         false, 0},
+    {"Inputs/Power Channel2",                     NMA_Channel2_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[2],         false, 0},
+    {"Inputs/Power Channel3",                     NMA_Channel3_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[3],         false, 0},
+    {"Inputs/Power Channel4",                     NMA_Channel4_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[4],         false, 0},
+    {"Inputs/Power Channel5",                     NMA_Channel5_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[5],         false, 0},
+    {"Inputs/Power Channel6",                     NMA_Channel6_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[6],         false, 0},
+    {"Inputs/Power Channel7",                     NMA_Channel7_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[7],         false, 0},
+    {"Inputs/Power Channel8",                     NMA_Channel8_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[8],         false, 0},
+    {"Inputs/Power Channel9",                     NMA_Channel9_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[9],         false, 0},
+    {"Inputs/Power Channel10",                    NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[10],        false, 0},
+    {"Inputs/Power Channel11",                    NMA_Channel11_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[11],        false, 0},
     {"Outputs/Direction Channel0",                NMA_Channel0_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[0],         false, 0},
     {"Outputs/Direction Channel1",                NMA_Channel1_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[1],         false, 0},
     {"Outputs/Direction Channel2",                NMA_Channel2_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[2],         false, 0},
@@ -216,19 +229,32 @@ static MetricSpec NodeMetrics[] = {
     {"Outputs/Direction Channel9",                NMA_Channel9_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[9],         false, 0},
     {"Outputs/Direction Channel10",               NMA_Channel10_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[10],        false, 0},
     {"Outputs/Direction Channel11",               NMA_Channel11_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[11],        false, 0},
-    {"Inputs/Temperature Channel0",               NMA_Channel0_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[0],        false, 0},
-    {"Inputs/Temperature Channel1",               NMA_Channel1_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[1],        false, 0},
-    {"Inputs/Temperature Channel2",               NMA_Channel2_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[2],        false, 0},
-    {"Inputs/Temperature Channel3",               NMA_Channel3_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[3],        false, 0},
-    {"Inputs/Temperature Channel4",               NMA_Channel4_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[4],        false, 0},
-    {"Inputs/Temperature Channel5",               NMA_Channel5_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[5],        false, 0},
-    {"Inputs/Temperature Channel6",               NMA_Channel6_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[6],        false, 0},
-    {"Inputs/Temperature Channel7",               NMA_Channel7_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[7],        false, 0},
-    {"Inputs/Temperature Channel8",               NMA_Channel8_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[8],        false, 0},
-    {"Inputs/Temperature Channel9",               NMA_Channel9_temp,          false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[9],        false, 0},
-    {"Inputs/Temperature Channel10",              NMA_Channel10_temp,         false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[10],       false, 0},
-    {"Inputs/Temperature Channel11",              NMA_Channel11_temp,         false, METRIC_DATA_TYPE_FLOAT,   &m_Channel_temp[11],       false, 0},
+    {"Outputs/Temperature Channel0",              NMA_Channel0_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[0],        false, 0},
+    {"Outputs/Temperature Channel1",              NMA_Channel1_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[1],        false, 0},
+    {"Outputs/Temperature Channel2",              NMA_Channel2_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[2],        false, 0},
+    {"Outputs/Temperature Channel3",              NMA_Channel3_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[3],        false, 0},
+    {"Outputs/Temperature Channel4",              NMA_Channel4_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[4],        false, 0},
+    {"Outputs/Temperature Channel5",              NMA_Channel5_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[5],        false, 0},
+    {"Outputs/Temperature Channel6",              NMA_Channel6_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[6],        false, 0},
+    {"Outputs/Temperature Channel7",              NMA_Channel7_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[7],        false, 0},
+    {"Outputs/Temperature Channel8",              NMA_Channel8_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[8],        false, 0},
+    {"Outputs/Temperature Channel9",              NMA_Channel9_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[9],        false, 0},
+    {"Outputs/Temperature Channel10",             NMA_Channel10_temp,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[10],       false, 0},
+    {"Outputs/Temperature Channel11",             NMA_Channel11_temp,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[11],       false, 0},
+    {"Outputs/Seebeck Channel0",                  NMA_Channel0_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[0],     false, 0},
+    {"Outputs/Seebeck Channel1",                  NMA_Channel1_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[1],     false, 0},
+    {"Outputs/Seebeck Channel2",                  NMA_Channel2_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[2],     false, 0},
+    {"Outputs/Seebeck Channel3",                  NMA_Channel3_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[3],     false, 0},
+    {"Outputs/Seebeck Channel4",                  NMA_Channel4_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[4],     false, 0},
+    {"Outputs/Seebeck Channel5",                  NMA_Channel5_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[5],     false, 0},
+    {"Outputs/Seebeck Channel6",                  NMA_Channel6_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[6],     false, 0},
+    {"Outputs/Seebeck Channel7",                  NMA_Channel7_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[7],     false, 0},
+    {"Outputs/Seebeck Channel8",                  NMA_Channel8_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[8],     false, 0},
+    {"Outputs/Seebeck Channel9",                  NMA_Channel9_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[9],     false, 0},
+    {"Outputs/Seebeck Channel10",                 NMA_Channel10_Seebeck,      false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[10],    false, 0},
+    {"Outputs/Seebeck Channel11",                 NMA_Channel11_Seebeck,      false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[11],    false, 0}
 };
+
 //Verify validity of this function
 void reset_teensy(){
     WRITE_RESTART(0x5FA0004);
@@ -542,18 +568,20 @@ void callback_worker(char* topic, byte* payload, unsigned int len){
  * Channel voltages
  * @param the average temperature reading
  */
-void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp ){
+void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp, float seebeck ){
     
     // Store new Channel data, converting from raw Channel values to user units
     m_Channel_pwr[channel_num] = channel_pwr;
     m_Channel_dir[channel_num] = channel_dir;
     m_Channel_temp[channel_num] = channel_temp;
+    m_Channel_Seebeck[channel_num] = seebeck;
 
     for (int i = 0; i < NUM_TEC; i++) {
         if(!(update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[i]) &&
-                update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_dir[i]) &&
-                update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_temp[i]))) {
-            DebugPrint(cf_sparkplug_error);
+             update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_dir[i]) &&
+             update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_temp[i]) &&
+             update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_Seebeck[i]))) {
+                DebugPrint(cf_sparkplug_error);
         }
     }
 }

@@ -22,7 +22,7 @@ The beta coefficient of the thermistor (usually 3000-4000)
 
 ThermoElectricController::ThermoElectricController() {}
 
-int ThermoElectricController::begin( const int dirP, const int pwmP, const int thermistorP ) {
+int ThermoElectricController::begin( const int dirP, const int pwmP, const int thermistorP, const bool thermistor_installed, const int minVal ) {
   /*! @brief     Initializes the contents of the class
     @details   Sets pin definitions, and initializes the variables of the class.
     @param[in] dirPin Defines which pin controls direction
@@ -39,10 +39,13 @@ int ThermoElectricController::begin( const int dirP, const int pwmP, const int t
   pwmPct = 0;
   dir = 0;
   thermistorResistor = 10000;
+  minPercent = minVal;
+  thermistorInstalled = thermistor_installed;
+
   // set the pins properly for this TEC
-  pinMode(dirPin,OUTPUT);
+  pinMode(dirPin, INPUT_PULLUP);
   pinMode(pwmPin,OUTPUT);
-  pinMode(thermistorPin,INPUT);
+  pinMode(thermistorPin,INPUT_DISABLE);
   // set up the PWM parameters for the PWM pin.
   analogWriteFrequency(pwmPin, TEC_PWM_FREQ);
   analogReadResolution(12);
@@ -51,11 +54,13 @@ int ThermoElectricController::begin( const int dirP, const int pwmP, const int t
 }
 
 void ThermoElectricController::setPwm( int power ) {
-  int tmp = abs ((int) ((float) power * 255.0)/100.0);// convert to 0-255, negative values yield a negative result; < 0
-    analogWrite( pwmPin,tmp ); //
+  float scaled_power = fabs(power)/100 * (100-minPercent) + minPercent ;
+  int tmp = (int) ((scaled_power * 255.0)/100.0 + 0.5);// convert to 0-255 )
+  analogWrite( pwmPin,tmp); //
 }
 
 int ThermoElectricController::setPower( const int power ) {
+  
   if( power > 100 || power < -100 )
     return -1;
   Serial.print("Setting Power to ");Serial.println( power ); 
@@ -74,13 +79,37 @@ int ThermoElectricController::setPower( const int power ) {
   return 0; 
 }
 
+float  ThermoElectricController::getSeebeck( void ) {
+  // read the analog voltage
+  int adcCounts = 0;
+  int save_power  = pwmPct;
+  // check to see if it's configured
+  if( thermistorInstalled ) {
+    return -100;
+  }
+  //Serial.print("Getting Temperature from pin ");Serial.println( thermistorPin );
+  // set the power to 0;
+  setPwm(0);
+  // wait a few milliseconds
+  delay(10);
+  for(int i = 0; i < 16; i++) {
+    adcCounts += analogRead(thermistorPin);
+  }
+  adcCounts = adcCounts >> 4;  // divide by 16
+  setPwm(save_power);
+  // convert to voltage 
+  float voltage = adcCounts * 3.3/4096.0/500;
+  return voltage;
+}
+
 // 0 to 3.3 volts, 12 bits resolution
 // Need to read and average a bunch of these together to beat down the noise...
 float ThermoElectricController::get_Temperature(int channel) {
+ 
   extern Thermistor therm[NUM_TEC];
   extern bool calibrated;
 
-  // read the analog voltage
+  //read the analog voltage
   int adcCounts = 0;
   //Serial.print("Getting Temperature from pin ");Serial.println( thermistorPin );
   for(int i = 0; i < 16; i++) {
@@ -90,20 +119,13 @@ float ThermoElectricController::get_Temperature(int channel) {
   
   // convert to voltage 
   float voltage = raw_data * 3.3/4096.0;
-  //Serial.printf("Voltage: %f\n", voltage);
-  // convert to temperature
-  
-  /*
-  thermistance depends on order of resistors in voltage divider circuitry.
-  10K Ohm resistor assumed
-  */
+ 
+  //thermistance depends on order of resistors in voltage divider circuitry.
+  //10K Ohm resistor assumed
   float thermistance = 10000 * ((3.3/voltage) - 1); //If voltage drop accross thermistor occurs first.
-  //Serial.printf("Thermistance: %f\n", thermistance);
-
-  /*
-  Simplified B parameter Steinhart-Hart equation.
-  B coefficient for thermistor:  TT7-10KC3-11
-  */
+  
+  //Simplified B parameter Steinhart-Hart equation.
+  //B coefficient for thermistor:  TT7-10KC3-11
   temperature = (1/((1/TEMPERATURENOMINAL) + BCOEFFICIENT*log(thermistance/THERMISTORNOMINAL))) - 273.15;
   Serial.printf("RawTemperature: %f\n", temperature);
 

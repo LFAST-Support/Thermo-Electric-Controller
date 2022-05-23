@@ -23,13 +23,14 @@ const int TEC_PWM_FREQ = 50000;
 class ThermoElectricController {
  public:  
   ThermoElectricController();
-  int begin ( const int dirPin, const int pwmPin, const int thermistorPin);
+  int begin ( const int dirPin, const int pwmPin, const int thermistorPin, const bool thermistor_installed, const int minVal);
   
   int setPower( const int percent );
   //void setDirection( const bool direction );
   float get_Temperature(int channel);
   int getPower();
   bool getDirection();
+  float getSeebeck();
 
  protected:
   void setPwm(int power);
@@ -41,6 +42,8 @@ class ThermoElectricController {
   int pwmPin;
   int thermistorPin;
   int thermistorResistor;
+  bool thermistorInstalled;
+  int minPercent;
   int raw_data;
 };
 
