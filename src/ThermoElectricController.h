@@ -43,7 +43,7 @@ class ThermoElectricController {
   int thermistorPin;
   int thermistorResistor;
   bool thermistorInstalled;
-  int minPercent;
+  int minPercent; 
   int raw_data;
 };
 

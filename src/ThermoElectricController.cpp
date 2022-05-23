@@ -95,11 +95,12 @@ float  ThermoElectricController::getSeebeck( void ) {
   for(int i = 0; i < 16; i++) {
     adcCounts += analogRead(thermistorPin);
   }
+  Serial.println(adcCounts);
   adcCounts = adcCounts >> 4;  // divide by 16
   setPwm(save_power);
   // convert to voltage 
   float voltage = adcCounts * 3.3/4096.0/500;
-  return voltage;
+  return voltage * 1000;
 }
 
 // 0 to 3.3 volts, 12 bits resolution

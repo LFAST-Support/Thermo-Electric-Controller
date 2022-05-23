@@ -55,10 +55,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 //Nestors office mosquitto broker
 //#define MQTT_BROKER1 169,254,141,48
 
-//#define MQTT_BROKER1 'localhost'
-
 //Nestors laptop mosquitto broker
-#define MQTT_BROKER1 169,254,196,219
+#define MQTT_BROKER1 169,254,184,107
 #define MQTT_BROKER1_PORT 1883
 
 //NTP server address
@@ -104,10 +102,10 @@ static String nodeCmdTopic   = NODE_TOPIC(NCMD_MESSAGE_TYPE,   NODE_I_tempLATE);
 static uint64_t m_bdSeq[NUM_BROKERS]  = {0};  // Node birth/death sequence numbers
 static bool     m_nodeReboot          = false;
 static bool     m_nodeRebirth         = false;
-static bool     m_nodeNextServer      = false;
 static bool     m_nodeClearCal        = false;
 static bool     m_nodeCalibrated      = false;
 static bool     m_nodeCalibrationINW  = false;
+static bool     m_thermistorTemp      = false;
 static uint64_t m_commsVersion        = COMMS_VERSION;
 static const char *m_firmwareVersion  = TEC_VERSION_COMPLETE;
 static float    m_calTemp1            = {0.0};
@@ -116,20 +114,18 @@ static const char *m_units            = "/" ;// The user units
 static float m_Channel_pwr[NUMBER_OF_CHANNELS] = {0.00};
 static bool m_Channel_dir[NUMBER_OF_CHANNELS] = {false};
 static float m_Channel_temp[NUMBER_OF_CHANNELS] = {0.00};
-static float m_Channel_Seebeck[NUMBER_OF_CHANNELS] = {0.00};
-
 
 // Alias numbers for each of the node metrics
 enum NodeMetricAlias {
     NMA_bdSeq = 0,
     NMA_Reboot,
     NMA_Rebirth,
-    NMA_NextServer,
     NMA_ClearCal,
     NMA_CalibrationStatus,
     NMA_CalibrationTemp1,
     NMA_CalibrationTemp2,
     NMA_CalibrationINW,
+    NMA_ThermistorTemp,
     NMA_CommsVersion,
     NMA_FirmwareVersion,
     NMA_Units,
@@ -169,18 +165,6 @@ enum NodeMetricAlias {
     NMA_Channel9_temp,
     NMA_Channel10_temp,
     NMA_Channel11_temp,
-    NMA_Channel0_Seebeck,
-    NMA_Channel1_Seebeck,
-    NMA_Channel2_Seebeck,
-    NMA_Channel3_Seebeck,
-    NMA_Channel4_Seebeck,
-    NMA_Channel5_Seebeck,
-    NMA_Channel6_Seebeck,
-    NMA_Channel7_Seebeck,
-    NMA_Channel8_Seebeck,
-    NMA_Channel9_Seebeck,
-    NMA_Channel10_Seebeck,
-    NMA_Channel11_Seebeck,
     EndNodeMetricAlias
 };
 
@@ -198,10 +182,10 @@ static MetricSpec NodeMetrics[] = {
     {"Properties/Firmware Version",               NMA_FirmwareVersion,        false, METRIC_DATA_TYPE_STRING,    &m_firmwareVersion,        false, 0},
     {"Properties/Units",                          NMA_Units,                  false, METRIC_DATA_TYPE_STRING,    &m_units,                  false, 0},
     {"Properties/Calibration INW",                NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeCalibrationINW,     false, 0},
+    {"Properties/Thermistor Temp",                NMA_ThermistorTemp,         true, METRIC_DATA_TYPE_BOOLEAN,    &m_thermistorTemp,         false, 0},
     {"Properties/Calibration Status",             NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeCalibrated,         false, 0},
     {"Node Control/Reboot",                       NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeReboot,             false, 0},
     {"Node Control/Rebirth",                      NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeRebirth,            false, 0},
-    {"Node Control/Next Server",                  NMA_NextServer,             true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeNextServer,         false, 0},
     {"Node Control/Clear Cal Data",               NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeClearCal,           false, 0},
     {"Node Control/Calibration Temperature 1",    NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,      &m_calTemp1,               false, 0},        
     {"Node Control/Calibration Temperature 2",    NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,      &m_calTemp2,               false, 0},    
@@ -241,18 +225,6 @@ static MetricSpec NodeMetrics[] = {
     {"Outputs/Temperature Channel9",              NMA_Channel9_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[9],        false, 0},
     {"Outputs/Temperature Channel10",             NMA_Channel10_temp,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[10],       false, 0},
     {"Outputs/Temperature Channel11",             NMA_Channel11_temp,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[11],       false, 0},
-    {"Outputs/Seebeck Channel0",                  NMA_Channel0_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[0],     false, 0},
-    {"Outputs/Seebeck Channel1",                  NMA_Channel1_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[1],     false, 0},
-    {"Outputs/Seebeck Channel2",                  NMA_Channel2_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[2],     false, 0},
-    {"Outputs/Seebeck Channel3",                  NMA_Channel3_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[3],     false, 0},
-    {"Outputs/Seebeck Channel4",                  NMA_Channel4_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[4],     false, 0},
-    {"Outputs/Seebeck Channel5",                  NMA_Channel5_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[5],     false, 0},
-    {"Outputs/Seebeck Channel6",                  NMA_Channel6_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[6],     false, 0},
-    {"Outputs/Seebeck Channel7",                  NMA_Channel7_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[7],     false, 0},
-    {"Outputs/Seebeck Channel8",                  NMA_Channel8_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[8],     false, 0},
-    {"Outputs/Seebeck Channel9",                  NMA_Channel9_Seebeck,       false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[9],     false, 0},
-    {"Outputs/Seebeck Channel10",                 NMA_Channel10_Seebeck,      false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[10],    false, 0},
-    {"Outputs/Seebeck Channel11",                 NMA_Channel11_Seebeck,      false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_Seebeck[11],    false, 0}
 };
 
 //Verify validity of this function
@@ -272,10 +244,8 @@ void publish_births(){
         // Create and publish the NBIRTH message containing the bdseq metric
         // for this broker together with all the node metrics
         set_up_nbirth_payload();
-        if(!add_metrics(true, ARRAY_AND_SIZE(bdseqMetrics[br_idx])) ||
-           !publish_metrics(&m_broker[br_idx], 1, nodeBirthTopic.c_str(),
-                            true, ARRAY_AND_SIZE(NodeMetrics))){
-            DebugPrintNoEOL("Failed to publish NBIRTH: ");
+        if(!add_metrics(true, ARRAY_AND_SIZE(bdseqMetrics[br_idx])) || !publish_metrics(&m_broker[br_idx], NUM_BROKERS, nodeBirthTopic.c_str(), true, ARRAY_AND_SIZE(NodeMetrics))) {
+            DebugPrintNoEOL("Failed to add metrics: ");
             DebugPrint(cf_sparkplug_error);
             // Continue anyway
         }
@@ -407,7 +377,6 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             DebugPrint(cf_sparkplug_error);
             continue;
         }
-
     
         // Now handle the metric
         int64_t alias = metric_spec->alias;
@@ -435,18 +404,10 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
                 DebugPrint("Node Rebirth command received");
             }
             break;
-
-        case NMA_NextServer:
-            //### The Next Server command is part of the Sparkplug spec, but it
-            //### has no real use here since we stay connected to all brokers.
-            //### Should we just ignore this command (and remove metric and flag)?
-            m_nodeNextServer = metric->value.boolean_value;
-            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeNextServer)) {
-                DebugPrint(cf_sparkplug_error);
-            }
-            if(m_nodeNextServer) {
-                DebugPrint("NextServer command received");
-            }
+        case NMA_ThermistorTemp:
+            m_thermistorTemp = !m_thermistorTemp;
+            Serial.println(m_thermistorTemp);
+            publish_births();
             break;
         case NMA_CalibrationTemp1:
             m_calTemp1 = metric->value.float_value;
@@ -568,19 +529,23 @@ void callback_worker(char* topic, byte* payload, unsigned int len){
  * Channel voltages
  * @param the average temperature reading
  */
-void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp, float seebeck ){
+void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp, float Seebeck ){
     
     // Store new Channel data, converting from raw Channel values to user units
     m_Channel_pwr[channel_num] = channel_pwr;
     m_Channel_dir[channel_num] = channel_dir;
-    m_Channel_temp[channel_num] = channel_temp;
-    m_Channel_Seebeck[channel_num] = seebeck;
+    Serial.println(m_thermistorTemp);
+    if (m_thermistorTemp) {
+        m_Channel_temp[channel_num] = channel_temp;
+    }
+    else {
+        m_Channel_temp[channel_num] = Seebeck;
+    }
 
     for (int i = 0; i < NUM_TEC; i++) {
         if(!(update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[i]) &&
              update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_dir[i]) &&
-             update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_temp[i]) &&
-             update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_Seebeck[i]))) {
+             update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_temp[i]))) {
                 DebugPrint(cf_sparkplug_error);
         }
     }
@@ -652,12 +617,13 @@ bool network_init(void){
     set_max_metrics(NUM_ELEM(bdseqMetrics[0]) + NUM_ELEM(NodeMetrics));
 
     // Check that the alias numbers in the metrics are valid and unique
-    for(int i = 0; i < NUM_BROKERS; ++i)
+    for(int i = 0; i < NUM_BROKERS; ++i) {
         if(!check_metrics(ARRAY_AND_SIZE(bdseqMetrics[i]), NMA_bdSeq + 1)){
             DebugPrint(cf_sparkplug_error);
             return false;
         }
-    if(!check_metrics(ARRAY_AND_SIZE(NodeMetrics     ), EndNodeMetricAlias     )){
+    }
+    if(!check_metrics(ARRAY_AND_SIZE(NodeMetrics), EndNodeMetricAlias     )){
         DebugPrint(cf_sparkplug_error);
         return false;
     }
@@ -754,12 +720,13 @@ void check_brokers(void){
     // If we made a new connection to a broker, publish our birth messages to
     // all connected brokers.  Note that this must be done before handling any
     // incoming messages.
-    if(new_connection)
+    if(new_connection) {
         publish_births();
+    }
 
     // Handle any incoming messages, as well as maintaining our connection to
     // the brokers
-    for(int i = 0; i < NUM_BROKERS; ++i){
+    for(int i = 0; i < NUM_BROKERS; ++i) {
         PubSubClient *broker = &m_broker[i];
         if(broker->connected()) {
             broker->loop();
@@ -779,17 +746,9 @@ void check_brokers(void){
         // message will immediately follow with the flags reset to false.
         if(m_nodeRebirth) {
             m_nodeRebirth = false;
-            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeRebirth))
+            if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeRebirth)) {
                 DebugPrint(cf_sparkplug_error);
+            }
         }
-    }
-    // Publish any Node data that has changed
-    //publish_node_data();
-    // Reset the next server flag if it was set
-    if(m_nodeNextServer) {
-        m_nodeNextServer = false;
-        if(!update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_nodeNextServer)) {
-            DebugPrint(cf_sparkplug_error);
-        }   
     }
 }

@@ -20,8 +20,6 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
 
 #define temp get_Raw_Temperature()
 
-
-
 struct tec_config {
   int dirPin;
   int pwmPin;
@@ -69,7 +67,6 @@ void setup() {
     therm->load_cal_data();
     calibrated = true;
   }
-  bool setup_successful = hardwareID_init() && network_init();
 
   //setup the TECs
   delay(10000);
@@ -80,10 +77,12 @@ void setup() {
   Serial.print("Configured "); Serial.print(NUM_TEC); Serial.println(" TEC current controllers");
   delay(1000);
 
+  bool setup_successful = hardwareID_init() && network_init();
   //Setup MQTT protocol, connect to broker
   if(setup_successful){
-    Serial.println("Setup successful.");
+    delay(15000);
     check_brokers();
+    Serial.println("Setup successful.");
   }
   else {
     Serial.println("Setup Failed.");
@@ -93,28 +92,26 @@ void setup() {
 }
 
 void loop() {
-  
- // for(int j = -100 ; j <= 100; j+=50 ) {	
-    for (int i = 0; i < NUM_TEC; i++) {
-      //TEC[i + 1].setPower(j);
-     // Serial.print("TEC["); Serial.print( i ); Serial.print("] temp = "); 
-      //Serial.print(" Power = ");Serial.print(TEC[i].getPower());
-      //Serial.print(" Dir = ");Serial.println(TEC[i].getDirection());
-      /*
-      if (calibrated) {
-        publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Calibrated_Temp(i));
-        Serial.print(".Ino temp: ");Serial.println(TEC[i].get_Calibrated_Temp(i));
-      }
-      else {
-        */
-        publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Temperature(i), TEC[i].getSeebeck());
-
-      //}
-      check_brokers();
+  //for(int j = -100 ; j <= 100; j+=50 ) {	
+  for (int i = 0; i < NUM_TEC; i++) {
+    //TEC[i + 1].setPower(j);
+    // Serial.print("TEC["); Serial.print( i ); Serial.print("] temp = "); 
+    //Serial.print(" Power = ");Serial.print(TEC[i].getPower());
+    //Serial.print(" Dir = ");Serial.println(TEC[i].getDirection());
+    /*
+    if (calibrated) {
+      publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Calibrated_Temp(i));
+      Serial.print(".Ino temp: ");Serial.println(TEC[i].get_Calibrated_Temp(i));
     }
-    digitalWrite(LED_BUILTIN, (blink++ & 0x01)); 
-    Serial.println("Publishing Metrics.");
-    publish_node_data();
-    delay(6000);
+    else {
+      */
+      publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Temperature(i), TEC[i].getSeebeck());
+    //}
+  }
+  digitalWrite(LED_BUILTIN, (blink++ & 0x01)); 
+  Serial.println("Publishing Metrics.");
+  publish_node_data();
+  delay(6000);
   //}
+  check_brokers();
 }
