@@ -1,10 +1,9 @@
-Thermistor Mux Test Client Notes
+Thermo-Electric Controller (TEC) Client Notes
 =====================
 This file describes how to set up and run the `client.py` program.  This
 is an MQTT client that can be used to send MQTT commands via an MQTT broker to
-a Thermistor Mux module and display MQTT messages published by the Thermistor Mux module.  
-
-The Test Client currently only runs as a command-line interface.
+a TEC module and display MQTT messages published by the TEC module.  The Test
+Client can run either as a GUI program or with a command-line interface.  
 
 Set Up
 ------
@@ -35,13 +34,13 @@ systems should be similar:
 Running
 -------
 1. At least one MQTT broker must be running on the network.  This will pass
-  messages between the Test Client and the Thermistor Mux module/s.
+  messages between the Test Client and the TEC module/s.
   - For sample commands to start the brokers on Windows, see
     test_environment/start_test_env.bat.
   - For sample commands to start the brokers on Linux, see
     test_environment/start_test_env.sh.
 
-2. At least one Thermistor Mux module must be running on the network.  Each Thermistor MUX module
+2. At least one TEC module must be running on the network.  Each TEC module
   must have a separate ID (0 through 5).
 
 3. Run the Test Client from the test_environment directory:
@@ -54,15 +53,15 @@ Running
 
 The Test Client takes several command-line options that control how it
 operates.  If no options are specified it will run as a command-line interface and will connect
-to Thermistor Mux module 0.  To see a list of the available options, run it with the
+to TEC module 0.  To see a list of the available options, run it with the
 `help` argument:
   - python3 client.py help
-    Thermistor Mux Client v1.0
+    TEC Client v1.0
     Usage: {sys.argv[ 0 ]} [no_gui] [broker=[BROKER_IP][=BROKER_PORT]] [module=MODULE_ID] [reboot] [show=SHOW_WHAT] [log] [exit]' )
     where no_gui = run the command-line interface instead of the GUI' )
           BROKER_IP = hostname or IP address of MQTT broker (default {DEFAULT_BROKER_URL})' )
           BROKER_PORT = port number of MQTT broker (default {DEFAULT_BROKER_PORT})' )
-          MODULE_ID = the Thermistor Mux module number to contact (0-{NUM_MODULES - 1}, default {DEFAULT_MODULE_ID})' )
+          MODULE_ID = the TEC module number to contact (0-{NUM_MODULES - 1}, default {DEFAULT_MODULE_ID})' )
           reboot = send the Reboot command to the module' )
           show SHOW_WHAT = what to display on the command-line interface when a message is received, where SHOW_WHAT is one of:
               none = don\'t display anything
@@ -70,43 +69,47 @@ to Thermistor Mux module 0.  To see a list of the available options, run it with
               topic = just display the message topic and errors
               changed = display the message topic and only those metrics it contains (the default)
               all = display the message topic and all the metrics from this module' )
-          log = log inbound data messages to a CSV file with filename thermistorMux_test_log_DATE.csv
+          log = log inbound data messages to a CSV file with filename TEC_test_log_DATE.csv
           exit = exit as soon as command-line commands are issued
 
 For example (using Linux commands - for Windows replace `python3` with `python`):
   - python3 client.py
-      - Run as a command-line interface and connect to Thermistor Mux 0.
+      - Run as a command-line interface and connect to TEC 0.
   - python3 client.py module=3
-      - Run as a command-line interface and connect to Thermistor Mux 3.
+      - Run as a command-line interface and connect to TEC 3.
   - python3 client.py broker==1884 module=3
-      - Connect to Thermistor Mux 3 using the MQTT broker at the default IP address
+      - Connect to TEC 3 using the MQTT broker at the default IP address
         but on port 1884.
   - python3 client.py module=3 show=all log
-      - Run with a command-line interface, connect to Thermistor Mux 3, show all metrics,
+      - Run with a command-line interface, connect to TEC 3, show all metrics,
         and turn on data logging.
   - python3 client.py broker=localhost module=4 reboot exit
       - Connect to the MQTT broker on this computer (localhost) on the default
-        port (1883), send the Reboot command to Thermistor Mux 4.  Then exit.
+        port (1883), send the Reboot command to TEC 4.  Then exit.
 
 The command-line interface supports several interactive commands, which can be
 displayed by entering ? or help at the prompt:
     Enter command (? for help, Ctrl-D to quit): ?
-            Thermistor Mux Client v{APP_VERSION} connected to Module {option_module_id}
+            TEC Client v{APP_VERSION} connected to Module {option_module_id}
             Commands:
-                module MODULE_ID = switch to the Thermistor Mux module number (0-{NUM_MODULES - 1})
+                module MODULE_ID = switch to the TEC number (0-{NUM_MODULES - 1})
                 reboot = send the Reboot command to the module
+                channel NUMBER VALUE = send the set TEC channel power command to the module:' )
+                     NUMBER = which output to set (0-{NUM_TEC - 1}, or "all" for all channels)' )
+                     VALUE = the floating-point voltage to set it to ({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f}' )                
                 show SHOW_WHAT = what to display on the command-line interface when a message is received, where SHOW_WHAT is one of:
                     none = don\'t display anything
                     errors = just display errors in incoming messages
                     topic = just display the message topic and errors
-            '        changed = display the message topic and only those metrics it contains
+            '       changed = display the message topic and only those metrics it contains
                     all = display the message topic and all the metrics from this module
                 calibrate CAL_OPTIONS = check calibration status, calibrate thermistors or clear calibration data, where CAL_OPTIONS is one of:
                     temp1 = runs calibration routine for first temperature extreme. (Will set Calibration INW to true)
                     temp2 = runs calibration routine for second temperature extreme.
-                    status = Displays thermistor mux calibration status.
+                    status = Displays TEC calibration status.
                     clear = Permanently deletes stored calibration data. (Temperature displayed will be then be raw values)
                 log = toggle logging data messages to CSV on or off
+                data = toggle between displaying Seebeck voltage or Thermistor Temperature'                
                 quit, exit, <Ctrl-D> = stop this program
                 help, h, ? = display this list of commands
             Note: Only one command can be specified on the command-line.
