@@ -4,7 +4,7 @@ The thermo-electric controller runs on a Teensy 4.1, which commands 12 TEC chann
 and monitor temperature, or measure the seebeck voltage accross two point. Additionally, each channel can output a power value between -100 and 100.
 
 Calibration of thermistors is not required, but a calibration routine exists for more precise temperature data. Calibration data is then stored into Teensy EEPROM address: 1..., until cleared by user through client. EEPROM address 0 serves as calibration status flag. 
-    If EEPROM.read(0) == 0x01, thermistor mux has been calibrated. 
+    If EEPROM.read(0) == 0x01, the TEC has been calibrated. 
 
 ## Dependencies
 * Arduino.h 
@@ -46,7 +46,7 @@ either the user or system folder should work.  Mine is placed in
 * For instructions on installing a mosquitto broker, follow the link below. 
 *       https://mosquitto.org/download/
 *       
-* The `test_environment` folder contains a test client program `client.py` written in Python.  This is an MQTT client that can be used to send MQTT commands via an MQTT broker to a Thermistor Mux module and/or display MQTT messages published by the Thermistor Mux module.  It currently only runs as a command-line interface.
+* The `test_environment` folder contains a test client program `client.py` written in Python.  This is an MQTT client that can be used to send MQTT commands via an MQTT broker to a TEC module and/or display MQTT messages published by the TEC module.  It currently only runs as a command-line interface.
 * The Test Client has data logging capabilities.  Inbound messages from the TEC data topic are optionally logged to a CSV file with filename `TEC_test_log_YYYY-MM-DD.csv` in the folder where the Test Client is run.
 *
 * The client can be run as a command-line interface or GUI option. Both offer the same features and display the same telemetry. 
