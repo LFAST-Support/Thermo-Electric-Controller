@@ -64,9 +64,7 @@ either the user or system folder should work.  Mine is placed in
 * Entering the following commands into the command-line client will accomplish the calibration:
 *   calibrate temp1: Thermistors are placed at 0 celsius (or low extreme) and raw_Low temp is collected & stored into EEPROM by firmware, ref_Low is stored in EEPROM.
 *   calibrate temp2: Thermistors are placed at 100 celsius (or high extreme) and raw_High temp is collected & stored into EEPROM by firmware, ref_High is stored in EEPROM.
-* 
 *           Calibrated_Temp = [((raw_Temp - raw_Low) * (ref_Range) / (raw_Range)] + ref_Low;
-*     
 * Source: https://learn.adafruit.com/calibrating-sensors/two-point-calibration
 *
 * The calibration routine is also accessible through the client GUI, which functions in a similar fashion as the command-line interface. 
