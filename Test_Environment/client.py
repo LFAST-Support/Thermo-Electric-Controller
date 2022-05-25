@@ -39,7 +39,7 @@ COMMS_VERSION_METRIC    = 'Properties/Communications Version'
 BIRTH_DEATH_SEQ_METRIC  = 'bdSeq'
 NODE_ID                 = 'TEC'
 NUM_MODULES             = 6
-NUM_CHANNELS            = 12
+NUM_TEC                 = 12
 DEFAULT_BROKER_URL      = 'localhost'
 DEFAULT_BROKER_PORT     = 1883
 DEFAULT_MODULE_ID       = 0
@@ -102,9 +102,9 @@ Metrics = (
     [ MetricSpec( None, 'Node Control/Calibration Temperature 1',     'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Calibration Temperature 2',     'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Clear Cal Data',                'strip to /', False ) ] +
-    [ MetricSpec( None, f'Inputs/Power Channel{channel}',             'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
-    [ MetricSpec( None, f'Outputs/Direction Channel{channel}',        'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
-    [ MetricSpec( None, f'Outputs/Data Channel{channel}',      'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] 
+    [ MetricSpec( None, f'Inputs/Power Channel{channel}',             'strip to /', True  ) for channel in range( NUM_TEC ) ] +
+    [ MetricSpec( None, f'Outputs/Direction Channel{channel}',        'strip to /', True  ) for channel in range( NUM_TEC ) ] +
+    [ MetricSpec( None, f'Outputs/Data Channel{channel}',      'strip to /', True  ) for channel in range( NUM_TEC ) ] 
     )
 
 # Reset the aliases and/or values for all the metrics of the specified device
@@ -495,7 +495,7 @@ def display_metrics( topic, payload, save_to_log ):
 
     # Set the value string for each metric
     for metric in Metrics:
-        for channel in range(12):
+        for channel in range(NUM_TEC):
             if metric.value == None:
                 metric.value_str = f'{metric.value}'
                 break
@@ -510,15 +510,16 @@ def display_metrics( topic, payload, save_to_log ):
             elif (metric.name == ( f'Outputs/Data Channel{channel}')): # for channel in range(12)):
                 times[channel] = f'{metric.timestamp}\n'
                 if option_data: 
-                    metric.display_name = ('Thermistor Temperature')
+                    metric.display_name = f'Thermistor Temperature{channel}'
                     metric.value_str = f'{metric.value:.2f} °C'
                 else: 
-                    metric.display_name = ('Seebeck Voltage')
+                    metric.display_name = f'Seebeck Voltage{channel}'
                     metric.value_str = f'{metric.value:.2f} mV'
+                temperatures[channel] = f'{metric.value_str}\n'
                 break
-        else:
-            metric.value_str = f'{metric.value}'
-            #report(f'Unk: {metric.value_str}')
+            else:
+                metric.value_str = f'{metric.value}'
+                #report(f'Unk: {metric.value_str}')
 
     if option_no_GUI:
         if option_show in [ 'changed', 'all' ]:
@@ -573,6 +574,10 @@ def show_data_on_GUI():
     gui_temp = str()
     gui_time = str()
 
+    if not gui_controls_created:
+        report( 'GUI controls not created - metrics not displayed', error = True, always = True )
+        return
+
     try:
         metric_spec = find_metric( None, 'Properties/Calibration Status' )
         if metric_spec.value != None:
@@ -586,18 +591,16 @@ def show_data_on_GUI():
     except ValueError:
         pass
 
-    if not gui_controls_created:
-        report( 'GUI controls not created - metrics not displayed', error = True, always = True )
-        return
+
 
     if (option_data):
         thermistor_label.setText('Thermistor Temp (°C)')
-        thermistor_button.setText( 'Show Seebeck Voltage' )
+        thermistor_button.setText( 'Display Seebeck Voltage' )
     else:
         thermistor_label.setText( 'Seebeck Voltage (mV)' )
-        thermistor_button.setText( 'Show Thermistor Temp' )
+        thermistor_button.setText( 'Display Thermistor Temp' )
 
-    for channel in range (NUM_CHANNELS) :
+    for channel in range (NUM_TEC) :
         gui_channel += channels[channel]
         gui_pwr += powers[channel]
         gui_dir += directions[channel]
@@ -740,7 +743,7 @@ def send_cal_gui_command(temp1, temp2, clear):
 def add_channel_metric( payload, channel_number, value ):
     if isinstance( channel_number, str ) and channel_number.lower() == 'all':
         # Special flag indicating all TECs
-        for channel_number in range( NUM_CHANNELS ):
+        for channel_number in range( NUM_TEC ):
             if not add_channel_metric( payload, channel_number, value ):
                 return False
         return True
@@ -749,8 +752,8 @@ def add_channel_metric( payload, channel_number, value ):
     except ValueError:
         report( f'Invalid channel NUMBER, must be an integer or "all": "{channel_number}"', error = True, always = True )
         return False
-    if channel_number < 0 or channel_number >= NUM_CHANNELS:
-        report( f'Channel NUMBER out of range 0 to {NUM_CHANNELS - 1}: {channel_number}', error = True, always = True )
+    if channel_number < 0 or channel_number >= NUM_TEC:
+        report( f'Channel NUMBER out of range 0 to {NUM_TEC - 1}: {channel_number}', error = True, always = True )
         return False
     try:
         value = float( value )
@@ -793,7 +796,6 @@ option_calibrate = False
 option_do_set_channel = False
 option_channel_number = 0
 option_channel_value = 0.0
-NUM_TEC = 12
 MIN_TEC_VALUE = -100
 MAX_TEC_VALUE = 100
 
@@ -1075,9 +1077,9 @@ else:
 
     # The Seebeck/ Thermistor button
     if (option_data):
-        thermistor_button = QPushButton( 'Show Seebeck Voltage' )
+        thermistor_button = QPushButton( 'Display Seebeck Voltage' )
     else:
-        thermistor_button = QPushButton( 'Show Thermistor Temp' )
+        thermistor_button = QPushButton( 'Display Thermistor Temp' )
     thermistor_button.clicked.connect( data_button_handler )
     v_box_layout.addWidget( center_widget(thermistor_button) )
 
