@@ -9,7 +9,6 @@ Calibration of thermistors is not required, but a calibration routine exists for
 ## Dependencies
 * Arduino.h 
 * Ethernet.h 
-* SPI.h
 * EEPROM.h
 * MATH.h
 * PubSubClient (SO-ETS fork, in https://github.com/Steward-Observatory-ETS/pubsubclient)
