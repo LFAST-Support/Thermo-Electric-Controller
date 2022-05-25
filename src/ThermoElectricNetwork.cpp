@@ -15,12 +15,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 *******************************************************************************/
 
 /**
- * @file ChannelTEC_network.cpp
+ * @file ThermoElectricNetwork.cpp
  * @author Nestor Garcia (Nestor212@email.arizona.edu)
  * @brief Implements networking specific functions, to handle Ethernet, MQTT,
  * Sparkplug, and NTP functionality.
  * Originally created for VCM module, modified for Channel TEC use.
- * @version (see Channel_TEC_VERSION in ChannelTEC_global.h)
+ * @version (see TEC_VERSION in ThermoElectricGlobal.h)
  * @date 2022-04-19
  *
  * @copyright Copyright (c) 2021
@@ -56,8 +56,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 //#define MQTT_BROKER1 169,254,141,48
 
 //Nestors laptop mosquitto broker
-#define MQTT_BROKER1 169,254,150,62
-#define MQTT_BROKER1_PORT 1883
+#define MQTT_BROKER1 169,254,141,48
+#define MQTT_BROKER1_PORT 1884
 
 //NTP server address
 #define NTP_IP  {169, 254, 39, 226}

@@ -41,7 +41,7 @@ NODE_ID                 = 'TEC'
 NUM_MODULES             = 6
 NUM_TEC                 = 12
 DEFAULT_BROKER_URL      = 'localhost'
-DEFAULT_BROKER_PORT     = 1883
+DEFAULT_BROKER_PORT     = 1884
 DEFAULT_MODULE_ID       = 0
 SHOW_OPTIONS            = [ 'none', 'errors', 'topic', 'changed', 'all' ] 
 CAL_OPTIONS             = [ 'temp1', 'temp2', 'status', 'clear' ]
@@ -104,7 +104,7 @@ Metrics = (
     [ MetricSpec( None, 'Node Control/Clear Cal Data',                'strip to /', False ) ] +
     [ MetricSpec( None, f'Inputs/Power Channel{channel}',             'strip to /', True  ) for channel in range( NUM_TEC ) ] +
     [ MetricSpec( None, f'Outputs/Direction Channel{channel}',        'strip to /', True  ) for channel in range( NUM_TEC ) ] +
-    [ MetricSpec( None, f'Outputs/Data Channel{channel}',      'strip to /', True  ) for channel in range( NUM_TEC ) ] 
+    [ MetricSpec( None, f'Outputs/Data Channel{channel}',             'strip to /', True  ) for channel in range( NUM_TEC ) ] 
     )
 
 # Reset the aliases and/or values for all the metrics of the specified device
@@ -231,8 +231,6 @@ def unsubscribe_data( client ):
 
 # Switch to a different module
 def change_module( module_id, client ):
-    global module_is_alive
-    global compatible_version
 
     try:
         module_id = int( module_id )
@@ -590,7 +588,6 @@ def show_data_on_GUI():
             calibration_label.setText(f'Calibration in progress? : {metric_spec.value}')
     except ValueError:
         pass
-
 
 
     if (option_data):

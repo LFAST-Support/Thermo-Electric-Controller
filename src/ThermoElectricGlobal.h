@@ -28,14 +28,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <Arduino.h>
 #include <math.h>
 #include <EEPROM.h>
-#include "SPI.h"
-
 
 #ifndef THERMOELECTRIC_CONTROLLER_GLOBAL_H
 #define THERMOELECTRIC_CONTROLLER_GLOBAL_H
 
 // Overall version of the VCM module
-#define THERMISTOR_MUX_VERSION    "1.0 dev 1"
+#define TEC_VERSION    "1.0 dev 1"
 
 // Overall version of the MQTT messages.  Increment this for any change to
 // the messages: added, deleted, renamed, different type, different function.
@@ -82,8 +80,5 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 #define NUMBER_OF_CHANNELS 12
 const uint8_t NUM_TEC = 12; // 12 TEC
-static float ref_Low;
-static float ref_High;
-static int hardware_id = -1;
 
 #endif

@@ -12,7 +12,6 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
 #ifndef __ThermoElectricController_H
 #define __ThermoElectricController_H
 
-#include "Arduino.h"
 #include "ThermoElectricGlobal.h"
 
 bool hardwareID_init();

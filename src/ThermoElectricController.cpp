@@ -20,6 +20,10 @@ The beta coefficient of the thermistor (usually 3000-4000)
 // temperature for nominal resistance (almost always 25 C = 298.15 K)
 #define TEMPERATURENOMINAL 298.15   
 
+static float ref_Low;
+static float ref_High;
+static int hardware_id = -1;
+
 ThermoElectricController::ThermoElectricController() {}
 
 int ThermoElectricController::begin( const int dirP, const int pwmP, const int thermistorP, const bool thermistor_installed, const int minVal ) {

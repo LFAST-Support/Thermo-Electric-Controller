@@ -14,7 +14,6 @@ REM using wsl2 to host brokers and test client due to unresolved issues with Ror
 @REM taskkill /F /FI "SERVICES eq iphlpsvc"
 @REM need to kill iphlpsvc (aka IP Helper) from the services console if it's interfering
 start powershell {mosquitto -c broker1.config; Read-Host}
-start powershell {mosquitto -c broker2.config; Read-Host}
 
 @REM Example command to start the Test Client:
 @REM py test_client.py

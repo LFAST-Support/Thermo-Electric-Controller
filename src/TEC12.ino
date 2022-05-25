@@ -9,7 +9,6 @@ Manage direction control.  Set current to zero before switching direction.
 Report Thermistor ADC values to serial or over Ethernet port  (this would be a good place for a web server!)
 */
 
-#include "Arduino.h"
 #include "ThermoElectricController.h"
 #include "ThermoElectricGlobal.h"
 #include "ThermoElectricNetwork.h"
@@ -17,8 +16,6 @@ Report Thermistor ADC values to serial or over Ethernet port  (this would be a g
 /******************
  * Begin Configure
  ******************/
-
-#define temp get_Raw_Temperature()
 
 struct tec_config {
   int dirPin;
@@ -44,11 +41,11 @@ struct tec_config tec_cfg[]=
   {37,10,41,0,0},
   {36,11,40,0,0},
 };
-
 /*
  ******************
  * End Configure
  ******************/
+
 ThermoElectricController TEC[NUM_TEC];
 Thermistor therm[NUM_TEC];
 bool calibrated = false;
@@ -59,7 +56,6 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("Configuring the TECs");
-
 
   //Load cal data if thermistors have been calibrated.
   if (EEPROM.read(0) == 0x01) {
@@ -87,8 +83,6 @@ void setup() {
   else {
     Serial.println("Setup Failed.");
   }
-
-
 }
 
 void loop() {
@@ -111,7 +105,7 @@ void loop() {
   digitalWrite(LED_BUILTIN, (blink++ & 0x01)); 
   Serial.println("Publishing Metrics.");
   publish_node_data();
-  delay(6000);
+  delay(3000);
   //}
   check_brokers();
 }
