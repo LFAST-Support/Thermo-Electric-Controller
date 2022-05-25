@@ -56,7 +56,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 //#define MQTT_BROKER1 169,254,141,48
 
 //Nestors laptop mosquitto broker
-#define MQTT_BROKER1 169,254,184,107
+#define MQTT_BROKER1 169,254,150,62
 #define MQTT_BROKER1_PORT 1883
 
 //NTP server address
@@ -74,7 +74,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Sparkplug settings
 #define GROUP_ID              "VI"              // This node's group ID
-#define NODE_I_tempLATE      "TECx"            // Template for this node's node ID
+#define NODE_I_dataLATE      "TECx"            // Template for this node's node ID
 #define NODE_ID_TOKEN         'x'               // Character to be replaced with module ID
 
 /*
@@ -92,11 +92,11 @@ static EthernetClient enet[NUM_BROKERS];
 static PubSubClient m_broker[NUM_BROKERS];
 
 // Sparkplug node and topic names
-static String node_id        = NODE_I_tempLATE;
-static String nodeBirthTopic = NODE_TOPIC(NBIRTH_MESSAGE_TYPE, NODE_I_tempLATE);
-static String nodeDeathTopic = NODE_TOPIC(NDEATH_MESSAGE_TYPE, NODE_I_tempLATE);
-static String nodeDataTopic  = NODE_TOPIC(NDATA_MESSAGE_TYPE,  NODE_I_tempLATE);
-static String nodeCmdTopic   = NODE_TOPIC(NCMD_MESSAGE_TYPE,   NODE_I_tempLATE);
+static String node_id        = NODE_I_dataLATE;
+static String nodeBirthTopic = NODE_TOPIC(NBIRTH_MESSAGE_TYPE, NODE_I_dataLATE);
+static String nodeDeathTopic = NODE_TOPIC(NDEATH_MESSAGE_TYPE, NODE_I_dataLATE);
+static String nodeDataTopic  = NODE_TOPIC(NDATA_MESSAGE_TYPE,  NODE_I_dataLATE);
+static String nodeCmdTopic   = NODE_TOPIC(NCMD_MESSAGE_TYPE,   NODE_I_dataLATE);
 
 // These variables hold the last published value of each metric
 static uint64_t m_bdSeq[NUM_BROKERS]  = {0};  // Node birth/death sequence numbers
@@ -105,7 +105,7 @@ static bool     m_nodeRebirth         = false;
 static bool     m_nodeClearCal        = false;
 static bool     m_nodeCalibrated      = false;
 static bool     m_nodeCalibrationINW  = false;
-static bool     m_thermistorTemp      = false;
+static bool     m_selectData          = false;
 static uint64_t m_commsVersion        = COMMS_VERSION;
 static const char *m_firmwareVersion  = TEC_VERSION_COMPLETE;
 static float    m_calTemp1            = {0.0};
@@ -113,7 +113,7 @@ static float    m_calTemp2            = {0.0};
 static const char *m_units            = "/" ;// The user units
 static float m_Channel_pwr[NUMBER_OF_CHANNELS] = {0.00};
 static bool m_Channel_dir[NUMBER_OF_CHANNELS] = {false};
-static float m_Channel_temp[NUMBER_OF_CHANNELS] = {0.00};
+static float m_Channel_data[NUMBER_OF_CHANNELS] = {0.00};
 
 // Alias numbers for each of the node metrics
 enum NodeMetricAlias {
@@ -125,7 +125,7 @@ enum NodeMetricAlias {
     NMA_CalibrationTemp1,
     NMA_CalibrationTemp2,
     NMA_CalibrationINW,
-    NMA_ThermistorTemp,
+    NMA_SelectData,
     NMA_CommsVersion,
     NMA_FirmwareVersion,
     NMA_Units,
@@ -153,18 +153,18 @@ enum NodeMetricAlias {
     NMA_Channel9_dir,
     NMA_Channel10_dir,
     NMA_Channel11_dir,
-    NMA_Channel0_temp,
-    NMA_Channel1_temp,
-    NMA_Channel2_temp,
-    NMA_Channel3_temp,
-    NMA_Channel4_temp,
-    NMA_Channel5_temp,
-    NMA_Channel6_temp,
-    NMA_Channel7_temp,
-    NMA_Channel8_temp,
-    NMA_Channel9_temp,
-    NMA_Channel10_temp,
-    NMA_Channel11_temp,
+    NMA_Channel0_data,
+    NMA_Channel1_data,
+    NMA_Channel2_data,
+    NMA_Channel3_data,
+    NMA_Channel4_data,
+    NMA_Channel5_data,
+    NMA_Channel6_data,
+    NMA_Channel7_data,
+    NMA_Channel8_data,
+    NMA_Channel9_data,
+    NMA_Channel10_data,
+    NMA_Channel11_data,
     EndNodeMetricAlias
 };
 
@@ -182,7 +182,7 @@ static MetricSpec NodeMetrics[] = {
     {"Properties/Firmware Version",               NMA_FirmwareVersion,        false, METRIC_DATA_TYPE_STRING,    &m_firmwareVersion,        false, 0},
     {"Properties/Units",                          NMA_Units,                  false, METRIC_DATA_TYPE_STRING,    &m_units,                  false, 0},
     {"Properties/Calibration INW",                NMA_CalibrationINW,         true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeCalibrationINW,     false, 0},
-    {"Properties/Thermistor Temp",                NMA_ThermistorTemp,         true, METRIC_DATA_TYPE_BOOLEAN,    &m_thermistorTemp,         false, 0},
+    {"Properties/Data Selection",                 NMA_SelectData,             true, METRIC_DATA_TYPE_BOOLEAN,    &m_selectData,             false, 0},
     {"Properties/Calibration Status",             NMA_CalibrationStatus,      true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeCalibrated,         false, 0},
     {"Node Control/Reboot",                       NMA_Reboot,                 true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeReboot,             false, 0},
     {"Node Control/Rebirth",                      NMA_Rebirth,                true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeRebirth,            false, 0},
@@ -213,18 +213,18 @@ static MetricSpec NodeMetrics[] = {
     {"Outputs/Direction Channel9",                NMA_Channel9_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[9],         false, 0},
     {"Outputs/Direction Channel10",               NMA_Channel10_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[10],        false, 0},
     {"Outputs/Direction Channel11",               NMA_Channel11_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[11],        false, 0},
-    {"Outputs/Temperature Channel0",              NMA_Channel0_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[0],        false, 0},
-    {"Outputs/Temperature Channel1",              NMA_Channel1_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[1],        false, 0},
-    {"Outputs/Temperature Channel2",              NMA_Channel2_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[2],        false, 0},
-    {"Outputs/Temperature Channel3",              NMA_Channel3_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[3],        false, 0},
-    {"Outputs/Temperature Channel4",              NMA_Channel4_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[4],        false, 0},
-    {"Outputs/Temperature Channel5",              NMA_Channel5_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[5],        false, 0},
-    {"Outputs/Temperature Channel6",              NMA_Channel6_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[6],        false, 0},
-    {"Outputs/Temperature Channel7",              NMA_Channel7_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[7],        false, 0},
-    {"Outputs/Temperature Channel8",              NMA_Channel8_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[8],        false, 0},
-    {"Outputs/Temperature Channel9",              NMA_Channel9_temp,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[9],        false, 0},
-    {"Outputs/Temperature Channel10",             NMA_Channel10_temp,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[10],       false, 0},
-    {"Outputs/Temperature Channel11",             NMA_Channel11_temp,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_temp[11],       false, 0},
+    {"Outputs/Data Channel0",                     NMA_Channel0_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[0],        false, 0},
+    {"Outputs/Data Channel1",                     NMA_Channel1_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[1],        false, 0},
+    {"Outputs/Data Channel2",                     NMA_Channel2_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[2],        false, 0},
+    {"Outputs/Data Channel3",                     NMA_Channel3_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[3],        false, 0},
+    {"Outputs/Data Channel4",                     NMA_Channel4_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[4],        false, 0},
+    {"Outputs/Data Channel5",                     NMA_Channel5_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[5],        false, 0},
+    {"Outputs/Data Channel6",                     NMA_Channel6_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[6],        false, 0},
+    {"Outputs/Data Channel7",                     NMA_Channel7_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[7],        false, 0},
+    {"Outputs/Data Channel8",                     NMA_Channel8_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[8],        false, 0},
+    {"Outputs/Data Channel9",                     NMA_Channel9_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[9],        false, 0},
+    {"Outputs/Data Channel10",                    NMA_Channel10_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[10],       false, 0},
+    {"Outputs/Data Channel11",                    NMA_Channel11_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[11],       false, 0},
 };
 
 //Verify validity of this function
@@ -404,9 +404,9 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
                 DebugPrint("Node Rebirth command received");
             }
             break;
-        case NMA_ThermistorTemp:
-            m_thermistorTemp = !m_thermistorTemp;
-            Serial.println(m_thermistorTemp);
+        case NMA_SelectData:
+            m_selectData = !m_selectData;
+            Serial.println(m_selectData);
             publish_births();
             break;
         case NMA_CalibrationTemp1:
@@ -529,23 +529,21 @@ void callback_worker(char* topic, byte* payload, unsigned int len){
  * Channel voltages
  * @param the average temperature reading
  */
-void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_temp, float Seebeck ){
+void publish_data( int channel_num, float channel_pwr, bool channel_dir, float channel_data, float Seebeck ){
     
     // Store new Channel data, converting from raw Channel values to user units
     m_Channel_pwr[channel_num] = channel_pwr;
     m_Channel_dir[channel_num] = channel_dir;
-    Serial.println(m_thermistorTemp);
-    if (m_thermistorTemp) {
-        m_Channel_temp[channel_num] = channel_temp;
+    if (m_selectData) {
+        m_Channel_data[channel_num] = channel_data;
     }
     else {
-        m_Channel_temp[channel_num] = Seebeck;
+        m_Channel_data[channel_num] = Seebeck;
     }
-
     for (int i = 0; i < NUM_TEC; i++) {
         if(!(update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_pwr[i]) &&
              update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_dir[i]) &&
-             update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_temp[i]))) {
+             update_metric(ARRAY_AND_SIZE(NodeMetrics), &m_Channel_data[i]))) {
                 DebugPrint(cf_sparkplug_error);
         }
     }
