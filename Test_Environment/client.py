@@ -43,8 +43,9 @@ NUM_CHANNELS            = 12
 DEFAULT_BROKER_URL      = 'localhost'
 DEFAULT_BROKER_PORT     = 1883
 DEFAULT_MODULE_ID       = 0
-SHOW_OPTIONS            = [ 'none', 'errors', 'topic', 'changed', 'all' ]
+SHOW_OPTIONS            = [ 'none', 'errors', 'topic', 'changed', 'all' ] 
 CAL_OPTIONS             = [ 'temp1', 'temp2', 'status', 'clear' ]
+DATA_OPTIONS            = [ 'seebeck', 'temp' ]
 
 module_is_alive      = False
 compatible_version   = False
@@ -53,6 +54,8 @@ message_seq          = 0
 cal_started = False
 cal_status  = False
 cal_INW     = False
+option_data = False
+
 
 channels = ['0\n', '1\n', '2\n','3\n', '4\n','5\n', '6\n','7\n', '8\n','9\n', '10\n','11\n']
 powers = ['/\n'] * 12
@@ -90,19 +93,18 @@ Metrics = (
     [ MetricSpec( None, 'bdSeq',                                      'strip to /', False ) ] +
     [ MetricSpec( None, 'Properties/Calibration Status',              'strip to /', False ) ] +
     [ MetricSpec( None, 'Properties/Calibration INW',                 'strip to /', False ) ] +
+    [ MetricSpec( None, 'Properties/Data Selection',                  'strip to /', True ) ] +
     [ MetricSpec( None, 'Properties/Units',                           'strip to /', True  ) ] +
     [ MetricSpec( None, 'Properties/Firmware Version',                'strip to /', True  ) ] +
     [ MetricSpec( None, 'Properties/Communications Version',          'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Reboot',                        'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Rebirth',                       'strip to /', False ) ] +
-    [ MetricSpec( None, 'Node Control/Next Server',                   'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Calibration Temperature 1',     'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Calibration Temperature 2',     'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Clear Cal Data',                'strip to /', False ) ] +
     [ MetricSpec( None, f'Inputs/Power Channel{channel}',             'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
     [ MetricSpec( None, f'Outputs/Direction Channel{channel}',        'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
-    [ MetricSpec( None, f'Outputs/Temperature Channel{channel}',      'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] +
-    [ MetricSpec( None, f'Outputs/Seebeck Channel{channel}',          'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] 
+    [ MetricSpec( None, f'Outputs/Data Channel{channel}',      'strip to /', True  ) for channel in range( NUM_CHANNELS ) ] 
     )
 
 # Reset the aliases and/or values for all the metrics of the specified device
@@ -173,6 +175,7 @@ def show_usage():
     print( f'          changed = display the message topic and only those metrics it contains (the default)' )
     print( f'          all = display the message topic and all the metrics from this module' )
     print( f'      log = log inbound data messages to a CSV file with filename thermistorMux_test_log_DATE.csv' )
+    print( f'      data = toggle between displaying Seebeck voltage or Thermistor Temperature' )
     print( f'      exit = exit as soon as command-line commands are issued' )
     sys.exit()
 
@@ -473,6 +476,7 @@ def display_metrics( topic, payload, save_to_log ):
     global temperatures
     global seebecks
     global times
+    global option_data
 
     # Get the measurement units value
     units = '?'
@@ -480,6 +484,12 @@ def display_metrics( topic, payload, save_to_log ):
         metric_spec = find_metric( None, 'Properties/Units' )
         if metric_spec.value != None:
             units = metric_spec.value
+    except ValueError:
+        pass
+    try:
+        metric_spec = find_metric( None, 'Properties/Data Selection' )
+        if metric_spec.value != None:
+            option_data = metric_spec.value
     except ValueError:
         pass
 
@@ -497,15 +507,14 @@ def display_metrics( topic, payload, save_to_log ):
                 metric.value_str = f'{metric.value}'
                 directions[channel] = f'{metric.value_str}\n'
                 break
-            elif (metric.name == ( f'Outputs/Temperature Channel{channel}')): # for channel in range(12)):
-                metric.value_str = f'{metric.value:.2f} °C'
-                temperatures[channel] = f'{metric.value_str}\n'
+            elif (metric.name == ( f'Outputs/Data Channel{channel}')): # for channel in range(12)):
                 times[channel] = f'{metric.timestamp}\n'
-                break
-            elif (metric.name == ( f'Outputs/Seebeck Channel{channel}')): # for channel in range(12)):
-                metric.value_str = f'{metric.value:.2f} V'
-                seebecks[channel] = f'{metric.value_str}\n'
-                times[channel] = f'{metric.timestamp}\n'
+                if option_data: 
+                    metric.display_name = ('Thermistor Temperature')
+                    metric.value_str = f'{metric.value:.2f} °C'
+                else: 
+                    metric.display_name = ('Seebeck Voltage')
+                    metric.value_str = f'{metric.value:.2f} mV'
                 break
         else:
             metric.value_str = f'{metric.value}'
@@ -529,6 +538,14 @@ def show_data_on_command_line( payload ):
         for metric in payload.metrics:
             payload_metric_names.append( metric.name )
             payload_metric_aliases.append( metric.alias )
+    try:
+        metric_spec = find_metric( None, 'Properties/Data Selection' )
+        if metric_spec.value != None:
+            option_data = metric_spec.value
+    except ValueError:
+        pass
+
+
 
     # Print out the desired metrics
     for metric in Metrics:
@@ -539,23 +556,21 @@ def show_data_on_command_line( payload ):
                  metric.alias not in payload_metric_aliases ):
                 continue
         print( f'{metric.display_name} at {metric.timestamp} = {metric.value_str}' )
-        
-
 
 LJUST_DIST = 50
 
 # Display current metric values on the GUI
 def show_data_on_GUI():
-#    global channels
     global status_label
     global calibration_label
-    global option_thermistor
+    global thermistor_button
+    global thermistor_label
+    global option_data
 
     gui_channel = str()
     gui_pwr = str()
     gui_dir = str()
     gui_temp = str()
-    gui_seebeck = str()
     gui_time = str()
 
     try:
@@ -575,21 +590,24 @@ def show_data_on_GUI():
         report( 'GUI controls not created - metrics not displayed', error = True, always = True )
         return
 
+    if (option_data):
+        thermistor_label.setText('Thermistor Temp (°C)')
+        thermistor_button.setText( 'Show Seebeck Voltage' )
+    else:
+        thermistor_label.setText( 'Seebeck Voltage (mV)' )
+        thermistor_button.setText( 'Show Thermistor Temp' )
+
     for channel in range (NUM_CHANNELS) :
         gui_channel += channels[channel]
         gui_pwr += powers[channel]
         gui_dir += directions[channel]
         gui_temp += temperatures[channel]
-        gui_seebeck += seebecks[channel]
         gui_time += times[channel]
 
     channel_outputs.setText(gui_channel)
     power_outputs.setText(gui_pwr)
     direction_outputs.setText(gui_dir)
-    if (option_thermistor):
-        thermistor_outputs.setText(gui_temp)
-    else:
-        thermistor_outputs.setText(gui_seebeck)
+    thermistor_outputs.setText(gui_temp)
     time_outputs.setText(gui_time)
 
 
@@ -630,7 +648,6 @@ def add_metric_as_alias( payload, device, metric_name, metric_type, metric_value
         # Found the alias for the metric, so use that instead of its name
         metric_name = None
         metric_alias = metric.alias
-    report(metric_name)
     addMetric( payload, metric_name, metric_alias, metric_type, metric_value )
 
 # Send an NCMD message with a single Boolean metric set to True
@@ -737,16 +754,15 @@ def add_channel_metric( payload, channel_number, value ):
         return False
     try:
         value = float( value )
-        report(f'{value}')
     except ValueError: 
         return False
     if value < -100 or value > 100:
         report( f'Invalid channel VALUE, must be a number from -100 to 100: "{value}"', error = True, always = True )
         return False
     try:
-        add_metric_as_alias( payload, None, f'Outputs/Power Channel{channel_number}', MetricDataType.Float, value )
+        add_metric_as_alias( payload, None, f'Inputs/Power Channel{channel_number}', MetricDataType.Float, value )
     except ValueError:
-        report( f'Unrecognized metric: "Outputs/Power Channel{channel_number}"', error = True, always = True )
+        report( f'Unrecognized metric: "Inputs/Power Channel{channel_number}"', error = True, always = True )
         return False
     return True
 
@@ -777,8 +793,6 @@ option_calibrate = False
 option_do_set_channel = False
 option_channel_number = 0
 option_channel_value = 0.0
-option_thermistor = False
-
 NUM_TEC = 12
 MIN_TEC_VALUE = -100
 MAX_TEC_VALUE = 100
@@ -870,18 +884,14 @@ def change_module_button_handler():
 def reboot_button_handler():
     reboot_module()
 
-def thermistor_button_handler():
-    global option_thermistor
-    global thermistor_label
-
-    if (option_thermistor):
-        thermistor_label.setText('Thermistor Temp')
-        thermistor_button.setText( 'Show Seebeck Voltage' )
-        option_thermistor = False
+def data_button_handler():
+    global option_data
+    send_simple_node_command('Properties/Data Selection', option_data)
+    if not option_data:
+        report("Displaying Thermistor Temperature.")
     else:
-        thermistor_label.setText( 'Seebeck Voltage' )
-        thermistor_button.setText( 'Show Thermistor Temp' )
-        option_thermistor = True
+        report("Displaying Seebeck Voltage.")
+
 
 def log_button_handler():
     global option_log
@@ -978,6 +988,8 @@ if option_no_GUI:
                 metric.value_str = f'{metric.value}'
                 metric.timestamp_str = f'{metric.timestamp}'
                 print( f'{metric.display_name} at {metric.timestamp_str} = {metric.value_str}' )
+        elif command[ 0 ] == 'data':
+            data_button_handler()
         elif command[ 0 ] == 'channel':
             if len( command ) != 3:
                 report( 'Invalid use, must be of the form "channel NUMBER VALUE"', error = True, always = True )
@@ -991,6 +1003,9 @@ if option_no_GUI:
             print( f'Commands:' )
             print( f'    module MODULE_ID = switch to the Thermistor Mux module number (0-{NUM_MODULES - 1})' )
             print( f'    reboot = send the Reboot command to the module' )
+            print( f'    channel NUMBER VALUE = send the set TEC channel power command to the module:' )
+            print( f'        NUMBER = which output to set (0-{NUM_TEC - 1}, or "all" for all channels)' )
+            print( f'        VALUE = the floating-point voltage to set it to ({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f}' )
             print( f'    show SHOW_WHAT = what to display on the command-line interface when a message is received, where SHOW_WHAT is one of:' )
             print( f'        none = don\'t display anything' )
             print( f'        errors = just display errors in incoming messages' )
@@ -1003,6 +1018,7 @@ if option_no_GUI:
             print( f'        status = Displays thermistor mux calibration status.')
             print( f'        clear = Permanently deletes stored calibration data. (Temperature displayed will be then be raw values)')
             print( f'    log = toggle logging data messages to CSV on or off' )
+            print( f'    data = toggle between displaying Seebeck voltage or Thermistor Temperature' )
             print( f'    quit, exit, <Ctrl-D> = stop this program' )
             print( f'    help, h, ? = display this list of commands' )
             print( f'Note: Only one command can be specified on the command-line.' )
@@ -1058,11 +1074,11 @@ else:
     v_box_layout.addWidget( center_widget( reboot_button ) )
 
     # The Seebeck/ Thermistor button
-    if (option_thermistor):
+    if (option_data):
         thermistor_button = QPushButton( 'Show Seebeck Voltage' )
     else:
         thermistor_button = QPushButton( 'Show Thermistor Temp' )
-    thermistor_button.clicked.connect( thermistor_button_handler )
+    thermistor_button.clicked.connect( data_button_handler )
     v_box_layout.addWidget( center_widget(thermistor_button) )
 
     # Data received from the module
@@ -1075,10 +1091,10 @@ else:
     output_grid.addWidget( QLabel( 'Power' ),       0, 1 )
     output_grid.addWidget( QLabel( 'Direction' ),   0, 2 )
     thermistor_label = QLabel('')
-    if (option_thermistor):
-        thermistor_label.setText('Thermistor Temp')
+    if (option_data):
+        thermistor_label.setText('Thermistor Temp (°C)')
     else:
-        thermistor_label.setText('Seebeck Voltage')
+        thermistor_label.setText('Seebeck Voltage (mV)')
     output_grid.addWidget( thermistor_label, 0, 3 )
     output_grid.addWidget( QLabel( 'Timestamp' ),   0, 4 )
   
