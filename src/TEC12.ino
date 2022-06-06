@@ -105,7 +105,7 @@ void loop() {
   digitalWrite(LED_BUILTIN, (blink++ & 0x01)); 
   Serial.println("Publishing Metrics.");
   publish_node_data();
-  delay(3000);
+  delay(6000);
   //}
   check_brokers();
 }

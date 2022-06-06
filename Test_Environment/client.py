@@ -47,14 +47,14 @@ SHOW_OPTIONS            = [ 'none', 'errors', 'topic', 'changed', 'all' ]
 CAL_OPTIONS             = [ 'temp1', 'temp2', 'status', 'clear' ]
 DATA_OPTIONS            = [ 'seebeck', 'temp' ]
 
-module_is_alive      = False
-compatible_version   = False
-gui_controls_created = False
-message_seq          = 0
-cal_started = False
-cal_status  = False
-cal_INW     = False
-option_data = False
+module_is_alive         = False
+compatible_version      = False
+gui_controls_created    = False
+message_seq             = 0
+cal_started             = False
+cal_status              = False
+cal_INW                 = False
+option_data             = False
 
 
 channels = ['0\n', '1\n', '2\n','3\n', '4\n','5\n', '6\n','7\n', '8\n','9\n', '10\n','11\n']
@@ -340,6 +340,10 @@ def on_message( client, userdata, msg ):
         # Update the values of the node metrics
         update_metrics( None, payload, set_alias = True )
         display_metrics( msg.topic, payload, option_log )
+
+        if not option_no_GUI:
+            set_labels()
+
     elif not module_is_alive:
         report( 'Module is dead, message ignored', error = True )
         return
@@ -560,11 +564,11 @@ LJUST_DIST = 50
 
 # Display current metric values on the GUI
 def show_data_on_GUI():
-    global status_label
-    global calibration_label
-    global thermistor_button
-    global thermistor_label
-    global option_data
+    global channel_outputs
+    global power_outputs
+    global direction_outputs
+    global thermistor_outputs
+    global time_outputs
 
     gui_channel = str()
     gui_pwr = str()
@@ -575,27 +579,6 @@ def show_data_on_GUI():
     if not gui_controls_created:
         report( 'GUI controls not created - metrics not displayed', error = True, always = True )
         return
-
-    try:
-        metric_spec = find_metric( None, 'Properties/Calibration Status' )
-        if metric_spec.value != None:
-           status_label.setText(f'Calibrated?: {metric_spec.value}')
-    except ValueError:
-        pass
-    try:
-        metric_spec = find_metric( None, 'Properties/Calibration INW' )
-        if metric_spec.value != None:
-            calibration_label.setText(f'Calibration in progress? : {metric_spec.value}')
-    except ValueError:
-        pass
-
-
-    if (option_data):
-        thermistor_label.setText('Thermistor Temp (°C)')
-        thermistor_button.setText( 'Display Seebeck Voltage' )
-    else:
-        thermistor_label.setText( 'Seebeck Voltage (mV)' )
-        thermistor_button.setText( 'Display Thermistor Temp' )
 
     for channel in range (NUM_TEC) :
         gui_channel += channels[channel]
@@ -922,6 +905,33 @@ def cal_button_handler ():
 def clear_cal_button_handler():
     send_cal_gui_command(None, None, True)
 
+def set_labels():
+    global status_label
+    global calibration_label
+    global thermistor_button
+    global thermistor_label
+    global option_data
+
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration Status' )
+        if metric_spec.value != None:
+           status_label.setText(f'Calibrated?: {metric_spec.value}')
+    except ValueError:
+        pass
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration INW' )
+        if metric_spec.value != None:
+            calibration_label.setText(f'Calibration in progress? : {metric_spec.value}')
+    except ValueError:
+        pass
+
+    if (option_data):
+        thermistor_label.setText('Thermistor Temp (°C)')
+        thermistor_button.setText( 'Display Seebeck Voltage' )
+    else:
+        thermistor_label.setText( 'Seebeck Voltage (mV)' )
+        thermistor_button.setText( 'Display Thermistor Temp' )
+
 
 # Select which UI to use
 if option_no_GUI:
@@ -1090,10 +1100,7 @@ else:
     output_grid.addWidget( QLabel( 'Power' ),       0, 1 )
     output_grid.addWidget( QLabel( 'Direction' ),   0, 2 )
     thermistor_label = QLabel('')
-    if (option_data):
-        thermistor_label.setText('Thermistor Temp (°C)')
-    else:
-        thermistor_label.setText('Seebeck Voltage (mV)')
+
     output_grid.addWidget( thermistor_label, 0, 3 )
     output_grid.addWidget( QLabel( 'Timestamp' ),   0, 4 )
   
@@ -1136,7 +1143,7 @@ else:
     set_TEC_layout.addWidget( QLabel( 'TEC Value' ),  1, 0 )
     set_TEC_value_input = QLineEdit( '0.0' )
     set_TEC_layout.addWidget( set_TEC_value_input,    1, 1 )
-    set_TEC_layout.addWidget( QLabel( f'({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f}, or "random")' ), 1, 2 )
+    set_TEC_layout.addWidget( QLabel( f'({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f})' ), 1, 2 )
 
     # Set TEC button
     set_TEC_button = QPushButton( 'Set TEC(s)' )
@@ -1185,7 +1192,7 @@ else:
     # The diagnostic text view
     diagnostic_text = QPlainTextEdit()
     diagnostic_text.setReadOnly( True )
-    diagnostic_text.setMaximumBlockCount( 1000 )
+    diagnostic_text.setMaximumBlockCount( 500 )
     normal_format = diagnostic_text.currentCharFormat()
     error_format = QTextCharFormat()
     error_format.setForeground( Qt.red )

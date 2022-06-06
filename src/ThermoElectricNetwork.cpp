@@ -53,10 +53,11 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #if defined(production_TEST)
 // MQTT broker definitions: TBD
 //Nestors office mosquitto broker
-//#define MQTT_BROKER1 169,254,141,48
+#define MQTT_BROKER1 169,254,141,48
 
 //Nestors laptop mosquitto broker
-#define MQTT_BROKER1 169,254,141,48
+//#define MQTT_BROKER1 169,254,141,48
+
 #define MQTT_BROKER1_PORT 1884
 
 //NTP server address
@@ -736,7 +737,7 @@ void check_brokers(void){
     if(rebirth){
         // Don't publish birth messages if we just did that
         if(!new_connection) {
-            publish_births();
+            //publish_births();
         }
 
         // Reset the flags after publishing so that the birth message/s will
