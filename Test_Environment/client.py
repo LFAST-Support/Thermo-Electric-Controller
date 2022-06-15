@@ -57,7 +57,7 @@ cal_INW                 = False
 option_data             = False
 
 
-channels = ['0\n', '1\n', '2\n','3\n', '4\n','5\n', '6\n','7\n', '8\n','9\n', '10\n','11\n']
+channels = ['1\n', '2\n','3\n', '4\n','5\n', '6\n','7\n', '8\n','9\n', '10\n','11\n','12\n']
 powers = ['/\n'] * 12
 directions = ['/\n'] * 12
 temperatures  = ['/\n'] * 12
@@ -87,7 +87,7 @@ class MetricSpec:
         self.alias = None
         self.value = None
         self.value_str = f'{self.value}'
-        self.timestamp = timestamp_str( None )
+        self.timestamp = timestamp_str( None ) 
 
 Metrics = (
     [ MetricSpec( None, 'bdSeq',                                      'strip to /', False ) ] +
@@ -102,9 +102,9 @@ Metrics = (
     [ MetricSpec( None, 'Node Control/Calibration Temperature 1',     'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Calibration Temperature 2',     'strip to /', False ) ] +
     [ MetricSpec( None, 'Node Control/Clear Cal Data',                'strip to /', False ) ] +
-    [ MetricSpec( None, f'Inputs/Power Channel{channel}',             'strip to /', True  ) for channel in range( NUM_TEC ) ] +
-    [ MetricSpec( None, f'Outputs/Direction Channel{channel}',        'strip to /', True  ) for channel in range( NUM_TEC ) ] +
-    [ MetricSpec( None, f'Outputs/Data Channel{channel}',             'strip to /', True  ) for channel in range( NUM_TEC ) ] 
+    [ MetricSpec( None, f'Inputs/Power Channel{channel + 1}',             'strip to /', True  ) for channel in range( NUM_TEC ) ] +
+    [ MetricSpec( None, f'Outputs/Direction Channel{channel + 1}',        'strip to /', True  ) for channel in range( NUM_TEC ) ] +
+    [ MetricSpec( None, f'Outputs/Data Channel{channel + 1}',             'strip to /', True  ) for channel in range( NUM_TEC ) ] 
     )
 
 # Reset the aliases and/or values for all the metrics of the specified device
@@ -341,9 +341,6 @@ def on_message( client, userdata, msg ):
         update_metrics( None, payload, set_alias = True )
         display_metrics( msg.topic, payload, option_log )
 
-        if not option_no_GUI:
-            set_labels()
-
     elif not module_is_alive:
         report( 'Module is dead, message ignored', error = True )
         return
@@ -368,6 +365,7 @@ def on_message( client, userdata, msg ):
         module_is_alive = False
     else:
         report( f'Unknown message received: {msg.topic}, with {len( payload.metrics )} metrics', error = True )
+
 
 # Check the communications version in the received payload and return True if
 # it's compatible with this program, or False if it isn't
@@ -479,6 +477,8 @@ def display_metrics( topic, payload, save_to_log ):
     global seebecks
     global times
     global option_data
+    global calibrated
+    global calibrationINW
 
     # Get the measurement units value
     units = '?'
@@ -494,6 +494,18 @@ def display_metrics( topic, payload, save_to_log ):
             option_data = metric_spec.value
     except ValueError:
         pass
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration Status' )
+        if metric_spec.value != None:
+            calibrated = metric_spec.value_str = metric_spec.value 
+    except ValueError:
+        pass
+    try:
+        metric_spec = find_metric( None, 'Properties/Calibration INW' )
+        if metric_spec.value != None:
+            calibrationINW = metric_spec.value_str = metric_spec.value
+    except ValueError:
+        pass
 
     # Set the value string for each metric
     for metric in Metrics:
@@ -501,21 +513,21 @@ def display_metrics( topic, payload, save_to_log ):
             if metric.value == None:
                 metric.value_str = f'{metric.value}'
                 break
-            elif (metric.name == ( f'Inputs/Power Channel{channel}')): # for channel in range(12)):
-                metric.value_str = f'{metric.value}'
+            elif (metric.name == ( f'Inputs/Power Channel{channel + 1}')): # for channel in range(12)):
+                metric.value_str = f'{metric.value:0.2f}'
                 powers[channel] = f'{metric.value_str}\n'
                 break
-            elif (metric.name == ( f'Outputs/Direction Channel{channel}')): # for channel in range(12)):
+            elif (metric.name == ( f'Outputs/Direction Channel{channel + 1}')): # for channel in range(12)):
                 metric.value_str = f'{metric.value}'
                 directions[channel] = f'{metric.value_str}\n'
                 break
-            elif (metric.name == ( f'Outputs/Data Channel{channel}')): # for channel in range(12)):
+            elif (metric.name == ( f'Outputs/Data Channel{channel + 1}')): # for channel in range(12)):
                 times[channel] = f'{metric.timestamp}\n'
                 if option_data: 
-                    metric.display_name = f'Thermistor Temperature{channel}'
+                    metric.display_name = f'Thermistor Temperature{channel + 1}'
                     metric.value_str = f'{metric.value:.2f} °C'
                 else: 
-                    metric.display_name = f'Seebeck Voltage{channel}'
+                    metric.display_name = f'Seebeck Voltage{channel + 1}'
                     metric.value_str = f'{metric.value:.2f} mV'
                 temperatures[channel] = f'{metric.value_str}\n'
                 break
@@ -532,6 +544,8 @@ def display_metrics( topic, payload, save_to_log ):
         log_data_to_CSV( payload.timestamp, topic )
 
 def show_data_on_command_line( payload ):
+    global option_data
+
     # If we're only displaying the metrics in the latest payload, build a list
     # of their names and aliases
     show_all = ( option_show == 'all' )
@@ -541,12 +555,6 @@ def show_data_on_command_line( payload ):
         for metric in payload.metrics:
             payload_metric_names.append( metric.name )
             payload_metric_aliases.append( metric.alias )
-    try:
-        metric_spec = find_metric( None, 'Properties/Data Selection' )
-        if metric_spec.value != None:
-            option_data = metric_spec.value
-    except ValueError:
-        pass
 
 
 
@@ -586,12 +594,15 @@ def show_data_on_GUI():
         gui_dir += directions[channel]
         gui_temp += temperatures[channel]
         gui_time += times[channel]
-
+        
+    
     channel_outputs.setText(gui_channel)
     power_outputs.setText(gui_pwr)
     direction_outputs.setText(gui_dir)
     thermistor_outputs.setText(gui_temp)
     time_outputs.setText(gui_time)
+
+    set_labels()
 
 
 def log_data_to_CSV( timestamp, topic ):
@@ -723,24 +734,24 @@ def send_cal_gui_command(temp1, temp2, clear):
 def add_channel_metric( payload, channel_number, value ):
     if isinstance( channel_number, str ) and channel_number.lower() == 'all':
         # Special flag indicating all TECs
-        for channel_number in range( NUM_TEC ):
+        for channel_number in range( 1, NUM_TEC + 1 ):
             if not add_channel_metric( payload, channel_number, value ):
                 return False
         return True
     try:
         channel_number = int( channel_number )
     except ValueError:
-        report( f'Invalid channel NUMBER, must be an integer or "all": "{channel_number}"', error = True, always = True )
+        report( f'Invalid tec NUMBER, must be an integer or "all": "{channel_number}"', error = True, always = True )
         return False
-    if channel_number < 0 or channel_number >= NUM_TEC:
-        report( f'Channel NUMBER out of range 0 to {NUM_TEC - 1}: {channel_number}', error = True, always = True )
+    if channel_number <= 0 or channel_number > NUM_TEC:
+        report( f'TEC NUMBER out of range 1 to {NUM_TEC}: {channel_number}', error = True, always = True )
         return False
     try:
         value = float( value )
     except ValueError: 
         return False
     if value < -100 or value > 100:
-        report( f'Invalid channel VALUE, must be a number from -100 to 100: "{value}"', error = True, always = True )
+        report( f'Invalid tec VALUE, must be a number from -100 to 100: "{value}"', error = True, always = True )
         return False
     try:
         add_metric_as_alias( payload, None, f'Inputs/Power Channel{channel_number}', MetricDataType.Float, value )
@@ -757,7 +768,7 @@ def set_channel( channel_number, value ):
         return False
     byte_array = bytearray( payload.SerializeToString() )
     client.publish( NODE_CMD_TOPIC, byte_array, 0, False )
-    report( f'Channel {channel_number} set to {value}', always = True )
+    report( f'TEC {channel_number} set to {value}', always = True )
     return True
     
              
@@ -778,6 +789,8 @@ option_channel_number = 0
 option_channel_value = 0.0
 MIN_TEC_VALUE = -100
 MAX_TEC_VALUE = 100
+calibrated = False
+calibrationINW = False
 
 # Parse the command-line options
 for arg in sys.argv[ 1: ]:
@@ -799,14 +812,14 @@ for arg in sys.argv[ 1: ]:
         option_module_id = split_arg[ 1 ]
     elif lower_arg == 'reboot':
         option_do_reboot = True
-    elif lower_arg.startswith( 'channel=' ):
+    elif lower_arg.startswith( 'tec=' ):
         if option_do_set_channel:
-            report( 'Only one "channel" argument can be specified', error = True, always = True )
+            report( 'Only one "tec" argument can be specified', error = True, always = True )
             show_usage()
         option_do_set_channel = True
         split_arg = arg.split( '=', 2 )
         if len( split_arg ) != 3:
-            report( 'Invalid "channel" option, must be of the form "channel=NUMBER=VALUE"', error = True, always = True )
+            report( 'Invalid "tec" option, must be of the form "tec=NUMBER=VALUE"', error = True, always = True )
             show_usage()
         option_channel_number  = split_arg[ 1 ]
         option_channel_value = split_arg[ 2 ]
@@ -911,19 +924,11 @@ def set_labels():
     global thermistor_button
     global thermistor_label
     global option_data
+    global calibrated 
+    global calibrationINW
 
-    try:
-        metric_spec = find_metric( None, 'Properties/Calibration Status' )
-        if metric_spec.value != None:
-           status_label.setText(f'Calibrated?: {metric_spec.value}')
-    except ValueError:
-        pass
-    try:
-        metric_spec = find_metric( None, 'Properties/Calibration INW' )
-        if metric_spec.value != None:
-            calibration_label.setText(f'Calibration in progress? : {metric_spec.value}')
-    except ValueError:
-        pass
+    status_label.setText(f'Calibrated?: {calibrated}')
+    calibration_label.setText(f'Calibration in progress? : {calibrationINW}')
 
     if (option_data):
         thermistor_label.setText('Thermistor Temp (°C)')
@@ -931,7 +936,6 @@ def set_labels():
     else:
         thermistor_label.setText( 'Seebeck Voltage (mV)' )
         thermistor_button.setText( 'Display Thermistor Temp' )
-
 
 # Select which UI to use
 if option_no_GUI:
@@ -999,9 +1003,9 @@ if option_no_GUI:
                 print( f'{metric.display_name} at {metric.timestamp_str} = {metric.value_str}' )
         elif command[ 0 ] == 'data':
             data_button_handler()
-        elif command[ 0 ] == 'channel':
+        elif command[ 0 ] == 'tec':
             if len( command ) != 3:
-                report( 'Invalid use, must be of the form "channel NUMBER VALUE"', error = True, always = True )
+                report( 'Invalid use, must be of the form "tec NUMBER VALUE"', error = True, always = True )
                 continue
             option_do_set_channel = True
             option_channel_number  = command[ 1 ]
@@ -1012,9 +1016,9 @@ if option_no_GUI:
             print( f'Commands:' )
             print( f'    module MODULE_ID = switch to the Thermistor Mux module number (0-{NUM_MODULES - 1})' )
             print( f'    reboot = send the Reboot command to the module' )
-            print( f'    channel NUMBER VALUE = send the set TEC channel power command to the module:' )
-            print( f'        NUMBER = which output to set (0-{NUM_TEC - 1}, or "all" for all channels)' )
-            print( f'        VALUE = the floating-point voltage to set it to ({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f}' )
+            print( f'    tec NUMBER VALUE = send the set TEC channel power command to the module:' )
+            print( f'        NUMBER = which output to set (1-{NUM_TEC}, or "all" for all TECs)' )
+            print( f'        VALUE = the floating-point power to set it to ({MIN_TEC_VALUE:.1f} to {MAX_TEC_VALUE:.1f}' )
             print( f'    show SHOW_WHAT = what to display on the command-line interface when a message is received, where SHOW_WHAT is one of:' )
             print( f'        none = don\'t display anything' )
             print( f'        errors = just display errors in incoming messages' )
@@ -1121,6 +1125,7 @@ else:
     log_button = QPushButton( '' )
     log_button.clicked.connect( log_button_handler )
     v_box_layout.addWidget( center_widget( log_button ) )
+
     if option_log:
         log_button.setText( 'Toggle Logging Off' )
     else:
@@ -1137,7 +1142,7 @@ else:
     set_TEC_layout.addWidget( QLabel( 'TEC Number' ),   0, 0 )
     set_TEC_Number_input = QLineEdit( '' )
     set_TEC_layout.addWidget( set_TEC_Number_input,     0, 1 )
-    set_TEC_layout.addWidget( QLabel( f'(0-{NUM_TEC - 1}, or "all" for all TECs)' ), 0, 2 )
+    set_TEC_layout.addWidget( QLabel( f'(1-{NUM_TEC}, or "all" for all TECs)' ), 0, 2 )
 
     # TEC Voltage entry
     set_TEC_layout.addWidget( QLabel( 'TEC Value' ),  1, 0 )

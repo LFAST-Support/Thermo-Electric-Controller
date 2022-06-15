@@ -51,12 +51,15 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #define NUM_BROKERS  1
 
 #if defined(production_TEST)
-// MQTT broker definitions: TBD
-//Nestors office mosquitto broker
+
+//Desktop mosquitto broker
 #define MQTT_BROKER1 169,254,141,48
 
-//Nestors laptop mosquitto broker
-//#define MQTT_BROKER1 169,254,141,48
+//LFAST Laptop mosquitto broker
+//#define MQTT_BROKER1 169,254,3,12
+
+//LFAST Laptop USB-C input 
+//#define MQTT_BROKER1 169,254,32,245
 
 #define MQTT_BROKER1_PORT 1884
 
@@ -130,7 +133,6 @@ enum NodeMetricAlias {
     NMA_CommsVersion,
     NMA_FirmwareVersion,
     NMA_Units,
-    NMA_Channel0_pwr,
     NMA_Channel1_pwr,
     NMA_Channel2_pwr,
     NMA_Channel3_pwr,
@@ -142,7 +144,7 @@ enum NodeMetricAlias {
     NMA_Channel9_pwr,
     NMA_Channel10_pwr,
     NMA_Channel11_pwr,
-    NMA_Channel0_dir,
+    NMA_Channel12_pwr,
     NMA_Channel1_dir,
     NMA_Channel2_dir,
     NMA_Channel3_dir,
@@ -154,7 +156,7 @@ enum NodeMetricAlias {
     NMA_Channel9_dir,
     NMA_Channel10_dir,
     NMA_Channel11_dir,
-    NMA_Channel0_data,
+    NMA_Channel12_dir,
     NMA_Channel1_data,
     NMA_Channel2_data,
     NMA_Channel3_data,
@@ -166,6 +168,7 @@ enum NodeMetricAlias {
     NMA_Channel9_data,
     NMA_Channel10_data,
     NMA_Channel11_data,
+    NMA_Channel12_data,
     EndNodeMetricAlias
 };
 
@@ -190,42 +193,42 @@ static MetricSpec NodeMetrics[] = {
     {"Node Control/Clear Cal Data",               NMA_ClearCal,               true, METRIC_DATA_TYPE_BOOLEAN,    &m_nodeClearCal,           false, 0},
     {"Node Control/Calibration Temperature 1",    NMA_CalibrationTemp1,       true, METRIC_DATA_TYPE_FLOAT,      &m_calTemp1,               false, 0},        
     {"Node Control/Calibration Temperature 2",    NMA_CalibrationTemp2,       true, METRIC_DATA_TYPE_FLOAT,      &m_calTemp2,               false, 0},    
-    {"Inputs/Power Channel0",                     NMA_Channel0_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[0],         false, 0},
-    {"Inputs/Power Channel1",                     NMA_Channel1_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[1],         false, 0},
-    {"Inputs/Power Channel2",                     NMA_Channel2_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[2],         false, 0},
-    {"Inputs/Power Channel3",                     NMA_Channel3_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[3],         false, 0},
-    {"Inputs/Power Channel4",                     NMA_Channel4_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[4],         false, 0},
-    {"Inputs/Power Channel5",                     NMA_Channel5_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[5],         false, 0},
-    {"Inputs/Power Channel6",                     NMA_Channel6_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[6],         false, 0},
-    {"Inputs/Power Channel7",                     NMA_Channel7_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[7],         false, 0},
-    {"Inputs/Power Channel8",                     NMA_Channel8_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[8],         false, 0},
-    {"Inputs/Power Channel9",                     NMA_Channel9_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[9],         false, 0},
-    {"Inputs/Power Channel10",                    NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[10],        false, 0},
-    {"Inputs/Power Channel11",                    NMA_Channel11_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[11],        false, 0},
-    {"Outputs/Direction Channel0",                NMA_Channel0_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[0],         false, 0},
-    {"Outputs/Direction Channel1",                NMA_Channel1_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[1],         false, 0},
-    {"Outputs/Direction Channel2",                NMA_Channel2_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[2],         false, 0},
-    {"Outputs/Direction Channel3",                NMA_Channel3_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[3],         false, 0},
-    {"Outputs/Direction Channel4",                NMA_Channel4_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[4],         false, 0},
-    {"Outputs/Direction Channel5",                NMA_Channel5_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[5],         false, 0},
-    {"Outputs/Direction Channel6",                NMA_Channel6_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[6],         false, 0},
-    {"Outputs/Direction Channel7",                NMA_Channel7_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[7],         false, 0},
-    {"Outputs/Direction Channel8",                NMA_Channel8_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[8],         false, 0},
-    {"Outputs/Direction Channel9",                NMA_Channel9_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[9],         false, 0},
-    {"Outputs/Direction Channel10",               NMA_Channel10_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[10],        false, 0},
-    {"Outputs/Direction Channel11",               NMA_Channel11_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[11],        false, 0},
-    {"Outputs/Data Channel0",                     NMA_Channel0_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[0],        false, 0},
-    {"Outputs/Data Channel1",                     NMA_Channel1_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[1],        false, 0},
-    {"Outputs/Data Channel2",                     NMA_Channel2_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[2],        false, 0},
-    {"Outputs/Data Channel3",                     NMA_Channel3_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[3],        false, 0},
-    {"Outputs/Data Channel4",                     NMA_Channel4_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[4],        false, 0},
-    {"Outputs/Data Channel5",                     NMA_Channel5_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[5],        false, 0},
-    {"Outputs/Data Channel6",                     NMA_Channel6_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[6],        false, 0},
-    {"Outputs/Data Channel7",                     NMA_Channel7_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[7],        false, 0},
-    {"Outputs/Data Channel8",                     NMA_Channel8_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[8],        false, 0},
-    {"Outputs/Data Channel9",                     NMA_Channel9_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[9],        false, 0},
-    {"Outputs/Data Channel10",                    NMA_Channel10_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[10],       false, 0},
-    {"Outputs/Data Channel11",                    NMA_Channel11_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[11],       false, 0},
+    {"Inputs/Power Channel1",                     NMA_Channel1_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[0],         false, 0},
+    {"Inputs/Power Channel2",                     NMA_Channel2_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[1],         false, 0},
+    {"Inputs/Power Channel3",                     NMA_Channel3_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[2],         false, 0},
+    {"Inputs/Power Channel4",                     NMA_Channel4_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[3],         false, 0},
+    {"Inputs/Power Channel5",                     NMA_Channel5_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[4],         false, 0},
+    {"Inputs/Power Channel6",                     NMA_Channel6_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[5],         false, 0},
+    {"Inputs/Power Channel7",                     NMA_Channel7_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[6],         false, 0},
+    {"Inputs/Power Channel8",                     NMA_Channel8_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[7],         false, 0},
+    {"Inputs/Power Channel9",                     NMA_Channel9_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[8],         false, 0},
+    {"Inputs/Power Channel10",                    NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[9],        false, 0},
+    {"Inputs/Power Channel11",                    NMA_Channel11_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[10],        false, 0},
+    {"Inputs/Power Channel12",                    NMA_Channel12_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[11],        false, 0},
+    {"Outputs/Direction Channel1",                NMA_Channel1_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[0],         false, 0},
+    {"Outputs/Direction Channel2",                NMA_Channel2_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[1],         false, 0},
+    {"Outputs/Direction Channel3",                NMA_Channel3_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[2],         false, 0},
+    {"Outputs/Direction Channel4",                NMA_Channel4_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[3],         false, 0},
+    {"Outputs/Direction Channel5",                NMA_Channel5_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[4],         false, 0},
+    {"Outputs/Direction Channel6",                NMA_Channel6_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[5],         false, 0},
+    {"Outputs/Direction Channel7",                NMA_Channel7_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[6],         false, 0},
+    {"Outputs/Direction Channel8",                NMA_Channel8_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[7],         false, 0},
+    {"Outputs/Direction Channel9",                NMA_Channel9_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[8],         false, 0},
+    {"Outputs/Direction Channel10",               NMA_Channel10_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[9],        false, 0},
+    {"Outputs/Direction Channel11",               NMA_Channel11_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[10],        false, 0},    
+    {"Outputs/Direction Channel12",               NMA_Channel12_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[11],         false, 0},
+    {"Outputs/Data Channel1",                     NMA_Channel1_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[0],        false, 0},
+    {"Outputs/Data Channel2",                     NMA_Channel2_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[1],        false, 0},
+    {"Outputs/Data Channel3",                     NMA_Channel3_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[2],        false, 0},
+    {"Outputs/Data Channel4",                     NMA_Channel4_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[3],        false, 0},
+    {"Outputs/Data Channel5",                     NMA_Channel5_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[4],        false, 0},
+    {"Outputs/Data Channel6",                     NMA_Channel6_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[5],        false, 0},
+    {"Outputs/Data Channel7",                     NMA_Channel7_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[6],        false, 0},
+    {"Outputs/Data Channel8",                     NMA_Channel8_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[7],        false, 0},
+    {"Outputs/Data Channel9",                     NMA_Channel9_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[8],        false, 0},
+    {"Outputs/Data Channel10",                    NMA_Channel10_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[9],       false, 0},
+    {"Outputs/Data Channel11",                    NMA_Channel11_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[10],       false, 0},    
+    {"Outputs/Data Channel12",                    NMA_Channel12_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[11],        false, 0},
 };
 
 //Verify validity of this function
@@ -430,9 +433,9 @@ bool process_node_cmd_message(char* topic, byte* payload, unsigned int len){
             publish_births();
             DebugPrint("Calibration data has been permanently erased.");            
             break;
-        case NMA_Channel0_pwr ... NMA_Channel11_pwr: {            
+        case NMA_Channel1_pwr ... NMA_Channel12_pwr: {            
             int channel;
-            channel = alias - NMA_Channel0_pwr;
+            channel = alias - NMA_Channel1_pwr;
             if(channel >= 0 && channel < NUMBER_OF_CHANNELS){
                 m_Channel_pwr[channel] = metric->value.float_value;
                 //### Should value be limited to min/max here?

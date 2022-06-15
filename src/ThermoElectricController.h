@@ -24,18 +24,18 @@ class ThermoElectricController {
   ThermoElectricController();
   int begin ( const int dirPin, const int pwmPin, const int thermistorPin, const bool thermistor_installed, const int minVal);
   
-  int setPower( const int percent );
+  int setPower( const float percent );
   //void setDirection( const bool direction );
   float get_Temperature(int channel);
-  int getPower();
+  float getPower();
   bool getDirection();
   float getSeebeck();
 
  protected:
-  void setPwm(int power);
+  void setPwm(float power);
   float temperature; // cooked ADC value
   int thermistor; // raw ADC value
-  int pwmPct;
+  float pwmPct;
   bool dir;
   int dirPin;
   int pwmPin;

@@ -57,13 +57,17 @@ int ThermoElectricController::begin( const int dirP, const int pwmP, const int t
   return 0;
 }
 
-void ThermoElectricController::setPwm( int power ) {
+void ThermoElectricController::setPwm( float power ) {
+  //Serial.print("Set PWM Power: ");Serial.println(power);
   float scaled_power = fabs(power)/100 * (100-minPercent) + minPercent ;
-  int tmp = (int) ((scaled_power * 255.0)/100.0 + 0.5);// convert to 0-255 )
+  float tmp = (float) ((scaled_power * 255.0)/100.0 + 0.5);// convert to 0-255 )
+  Serial.print("Analog write:"); Serial.println(tmp);
   analogWrite( pwmPin,tmp); //
 }
 
-int ThermoElectricController::setPower( const int power ) {
+int ThermoElectricController::setPower( const float power ) {
+ // Serial.print("SetPower Power: ");Serial.println(power);
+
   
   if( power > 100 || power < -100 )
     return -1;
@@ -86,7 +90,7 @@ int ThermoElectricController::setPower( const int power ) {
 float  ThermoElectricController::getSeebeck( void ) {
   // read the analog voltage
   int adcCounts = 0;
-  int save_power  = pwmPct;
+  float save_power  = pwmPct;
   // check to see if it's configured
   if( thermistorInstalled ) {
     return -100;
@@ -131,7 +135,7 @@ float ThermoElectricController::get_Temperature(int channel) {
   //Simplified B parameter Steinhart-Hart equation.
   //B coefficient for thermistor:  TT7-10KC3-11
   temperature = (1/((1/TEMPERATURENOMINAL) + BCOEFFICIENT*log(thermistance/THERMISTORNOMINAL))) - 273.15;
-  Serial.printf("RawTemperature: %f\n", temperature);
+  //Serial.printf("RawTemperature: %f\n", temperature);
 
   //If calibration data exists, apply calibration equation
   if (calibrated) {
@@ -142,7 +146,7 @@ float ThermoElectricController::get_Temperature(int channel) {
   return temperature;
 }
 
-int  ThermoElectricController::getPower( void ) {
+float  ThermoElectricController::getPower( void ) {
   return pwmPct;
 }
 
