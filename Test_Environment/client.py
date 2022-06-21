@@ -193,12 +193,12 @@ def report( msg, error = False, always = False ):
         if error:
             msg = '*** ' + msg + ' ***'
         print( msg )
-    else:
+    #else:
         ### Causes segmentation fault?
         ###if error:
         ###    diagnostic_text.setCurrentCharFormat( error_format )
-        diagnostic_text.appendPlainText( msg )
-        diagnostic_text.centerCursor()
+        #diagnostic_text.appendPlainText( msg )
+        #diagnostic_text.centerCursor()
         ###diagnostic_text.setCurrentCharFormat( normal_format )
 
 # Return the topic for a particular node message
@@ -1103,8 +1103,7 @@ else:
     output_grid.addWidget( QLabel( 'TEC Channel' ), 0, 0 )
     output_grid.addWidget( QLabel( 'Power' ),       0, 1 )
     output_grid.addWidget( QLabel( 'Direction' ),   0, 2 )
-    thermistor_label = QLabel('')
-
+    thermistor_label = QLabel('Temp')
     output_grid.addWidget( thermistor_label, 0, 3 )
     output_grid.addWidget( QLabel( 'Timestamp' ),   0, 4 )
   
@@ -1194,6 +1193,7 @@ else:
     set_cal_layout.addWidget( set_cal_button,           3, 3 )
     v_box_layout.addWidget( center_widget( set_cal_controls ) )
 
+    '''
     # The diagnostic text view
     diagnostic_text = QPlainTextEdit()
     diagnostic_text.setReadOnly( True )
@@ -1202,6 +1202,7 @@ else:
     error_format = QTextCharFormat()
     error_format.setForeground( Qt.red )
     v_box_layout.addWidget( diagnostic_text )
+    ''' 
 
     gui_controls_created = True
 

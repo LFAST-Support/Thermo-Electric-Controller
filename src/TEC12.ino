@@ -86,26 +86,12 @@ void setup() {
 }
 
 void loop() {
-  //for(int j = -100 ; j <= 100; j+=50 ) {	
   for (int i = 0; i < NUM_TEC; i++) {
-    //TEC[i + 1].setPower(j);
-    // Serial.print("TEC["); Serial.print( i ); Serial.print("] temp = "); 
-    //Serial.print(" Power = ");Serial.print(TEC[i].getPower());
-    //Serial.print(" Dir = ");Serial.println(TEC[i].getDirection());
-    /*
-    if (calibrated) {
-      publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Calibrated_Temp(i));
-      Serial.print(".Ino temp: ");Serial.println(TEC[i].get_Calibrated_Temp(i));
-    }
-    else {
-      */
       publish_data(i, TEC[i].getPower(), TEC[i].getDirection(), TEC[i].get_Temperature(i), TEC[i].getSeebeck());
-    //}
   }
   digitalWrite(LED_BUILTIN, (blink++ & 0x01)); 
   Serial.println("Publishing Metrics.");
   publish_node_data();
   delay(6000);
-  //}
   check_brokers();
 }

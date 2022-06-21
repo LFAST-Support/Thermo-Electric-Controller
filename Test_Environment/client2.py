@@ -33,7 +33,7 @@ import paho.mqtt.client as mqtt
 from sparkplug_b import *
 
 # Application constants
-APP_VERSION             = '1.0'
+APP_VERSION             = '2.0'
 COMMS_VERSION           = 2
 COMMS_VERSION_METRIC    = 'Properties/Communications Version'
 BIRTH_DEATH_SEQ_METRIC  = 'bdSeq'
@@ -55,14 +55,6 @@ cal_started             = False
 cal_status              = False
 cal_INW                 = False
 option_data             = False
-
-
-channels = ['1\n', '2\n','3\n', '4\n','5\n', '6\n','7\n', '8\n','9\n', '10\n','11\n','12\n']
-powers = ['/\n'] * 12
-directions = ['/\n'] * 12
-temperatures  = ['/\n'] * 12
-seebecks = ['/\n'] * 12
-times = ['/\n'] * 12
 
 date_string = datetime.datetime.now().strftime( '%Y-%m-%d' )
 LOG_FILENAME = f'TEC_test_log_{date_string}.csv'
@@ -193,12 +185,12 @@ def report( msg, error = False, always = False ):
         if error:
             msg = '*** ' + msg + ' ***'
         print( msg )
-    else:
+    #else:
         ### Causes segmentation fault?
         ###if error:
         ###    diagnostic_text.setCurrentCharFormat( error_format )
-        diagnostic_text.appendPlainText( msg )
-        diagnostic_text.centerCursor()
+        #diagnostic_text.appendPlainText( msg )
+        #diagnostic_text.centerCursor()
         ###diagnostic_text.setCurrentCharFormat( normal_format )
 
 # Return the topic for a particular node message
@@ -339,7 +331,10 @@ def on_message( client, userdata, msg ):
 
         # Update the values of the node metrics
         update_metrics( None, payload, set_alias = True )
-        display_metrics( None, payload, option_log )
+        display_metrics( msg.topic, payload, option_log )
+
+        if not option_no_GUI:
+            set_labels()
 
     elif not module_is_alive:
         report( 'Module is dead, message ignored', error = True )
@@ -353,14 +348,14 @@ def on_message( client, userdata, msg ):
 
         # Update the values of the node metrics
         update_metrics( None, payload, set_alias = False )
-        display_metrics(None, payload, option_log )
+        display_metrics(msg.topic, payload, option_log )
     elif msg.topic == NODE_DEATH_TOPIC:
         # Report if Birth/Death Sequence number doesn't match the last NBIRTH
         check_birth_death_sequence( payload, is_expected = True, must_match = True )
 
         # Update the values of any node metrics in the NDEATH payload
         update_metrics( None, payload, set_alias = False )
-        display_metrics( None, payload, option_log )
+        display_metrics( msg.topic, payload, option_log )
 
         module_is_alive = False
     else:
@@ -470,12 +465,7 @@ def check_birth_death_sequence( payload, is_expected, must_match ):
     return True
 
 # Display and/or log the values of the metrics
-def display_metrics( tec, payload, save_to_log ):
-    global powers
-    global directions
-    global temperatures
-    global seebecks
-    global times
+def display_metrics( topic, payload, save_to_log ):
     global option_data
     global calibrated
     global calibrationINW
@@ -515,33 +505,29 @@ def display_metrics( tec, payload, save_to_log ):
                 break
             elif (metric.name == ( f'Inputs/Power Channel{channel + 1}')): # for channel in range(12)):
                 metric.value_str = f'{metric.value:0.2f}'
-                powers[channel] = f'{metric.value_str}\n'
                 break
             elif (metric.name == ( f'Outputs/Direction Channel{channel + 1}')): # for channel in range(12)):
                 metric.value_str = f'{metric.value}'
-                directions[channel] = f'{metric.value_str}\n'
                 break
             elif (metric.name == ( f'Outputs/Data Channel{channel + 1}')): # for channel in range(12)):
-                times[channel] = f'{metric.timestamp}\n'
                 if option_data: 
                     metric.display_name = f'Thermistor Temperature{channel + 1}'
                     metric.value_str = f'{metric.value:.2f} °C'
                 else: 
                     metric.display_name = f'Seebeck Voltage{channel + 1}'
                     metric.value_str = f'{metric.value:.2f} mV'
-                temperatures[channel] = f'{metric.value_str}\n'
                 break
             else:
                 metric.value_str = f'{metric.value}'
                 #report(f'Unk: {metric.value_str}')
 
-    if option_no_GUI:
-        if option_show in [ 'changed', 'all' ]:
-            show_data_on_command_line( payload )
-    else:
-        show_data_on_GUI(tec, metric)
-    if save_to_log:
-        log_data_to_CSV( payload.timestamp, topic )
+        if option_no_GUI:
+            if option_show in [ 'changed', 'all' ]:
+                show_data_on_command_line( payload )
+        else:
+            show_data_on_GUI(metric)
+        if save_to_log:
+            log_data_to_CSV( payload.timestamp, topic )
 
 def show_data_on_command_line( payload ):
     global option_data
@@ -556,8 +542,6 @@ def show_data_on_command_line( payload ):
             payload_metric_names.append( metric.name )
             payload_metric_aliases.append( metric.alias )
 
-
-
     # Print out the desired metrics
     for metric in Metrics:
         # If we're only displaying the metrics in the latest payload, skip this
@@ -568,43 +552,14 @@ def show_data_on_command_line( payload ):
                 continue
         print( f'{metric.display_name} at {metric.timestamp} = {metric.value_str}' )
 
-LJUST_DIST = 50
-
 # Display current metric values on the GUI
-def show_data_on_GUI(tec, metric):
-    global channel_outputs
-    global power_outputs
-    global direction_outputs
-    global thermistor_outputs
-    global time_outputs
-
-    gui_channel = str()
-    gui_pwr = str()
-    gui_dir = str()
-    gui_temp = str()
-    gui_time = str()
-
+def show_data_on_GUI(metric):
     if not gui_controls_created:
         report( 'GUI controls not created - metrics not displayed', error = True, always = True )
         return
 
-    for channel in range (NUM_TEC) :
-        gui_channel += channels[channel]
-        gui_pwr += powers[channel]
-        gui_dir += directions[channel]
-        gui_temp += temperatures[channel]
-        gui_time += times[channel]
-        
-    '''
-    channel_outputs.setText(gui_channel)
-    power_outputs.setText(gui_pwr)
-    direction_outputs.setText(gui_dir)
-    thermistor_outputs.setText(gui_temp)
-    time_outputs.setText(gui_time)
-    '''
-    set_labels()
-
-    tec_widgets[ tec ].show( metric )
+    for tec in range(NUM_TEC):
+        tec_widgets[ tec  ].show( metric )
     
 
 def log_data_to_CSV( timestamp, topic ):
@@ -889,7 +844,6 @@ def data_button_handler():
     else:
         report("Displaying Seebeck Voltage.")
 
-
 def log_button_handler():
     global option_log
     option_log = not option_log
@@ -900,10 +854,15 @@ def log_button_handler():
         report( 'Logging is off', always = True )
         log_button.setText( 'Toggle Logging On' )
 
-def set_TEC_button_handler():
-    set_channel( set_TEC_Number_input.text(), set_TEC_value_input.text() )
+def set_TEC_button_handler2():
+    payload = get_cmd_payload()
+    for channel in range(NUM_TEC):
+        tec_widgets[channel].publish(payload)
+        # Send the message
+    byte_array = bytearray( payload.SerializeToString() )
+    client.publish( NODE_CMD_TOPIC, byte_array, 0, False )
 
-def cal_button_handler ():
+def cal_button_handler():
     global option_calibrate
     if not option_calibrate:
         report('Calibrate 1 INW')
@@ -1060,9 +1019,10 @@ class Text_Metric:
     def __init__( self, grid, row, col, metric_name, can_set ):
         self.metric_name = metric_name
         self.current = QLabel( 'None' )
-        grid.addWidget( self.current, row, col + 0, Qt.AlignRight )
+        grid.addWidget( self.current, row, col + 0, Qt.AlignCenter )
         if can_set:
             self.new = QLineEdit( '' )
+
             grid.addWidget( self.new, row, col + 1 )
         else:
             self.new = None
@@ -1108,13 +1068,13 @@ class TEC_channel:
         grid.addWidget( self.label, row, col, 1, 2, Qt.AlignHCenter )
 
         self.metrics = []
-        self.metrics.append( Text_Metric( grid, row, 2, f'Inputs/Power Channel{tec}', True ) )
+        self.metrics.append( Text_Metric( grid, row, 2, f'Inputs/Power Channel{tec + 1}', True ) )
 
-        self.metrics.append( Text_Metric( grid, row, 4, f'Outputs/Direction Channel{tec}', False ) )
+        self.metrics.append( Text_Metric( grid, row, 4, f'Outputs/Direction Channel{tec + 1}', False ) )
 
-        self.metrics.append( Text_Metric( grid, row, 5, f'Outputs/Data Channel{tec}', False ) )
+        self.metrics.append( Text_Metric( grid, row, 5, f'Outputs/Data Channel{tec + 1}', False ) )
 
-        self.metrics.append( Text_Metric( grid, row, 6, 'timestamp', False ) )
+        #self.metrics.append( Text_Metric( grid, row, 6, f'timestamp', False ) )
 
     def set_labels( self, grid, row, col ):
         for i in range( len( self.row_labels ) ):
@@ -1129,16 +1089,56 @@ class TEC_channel:
         for metric in self.metrics:
             metric.update( metric_spec )
 
-    def publish( self ):
+    def publish( self, payload ):
         name_list = []
         value_list = []
         for metric in self.metrics:
             metric.add_for_set( name_list, value_list )
-       # set_TEC( self.tic_number, name_list, value_list )
+        set_TEC( payload, self.tec_number, name_list, value_list )
 
 
+def set_TEC( payload, tec_number, name_list, value_list ):
+    if len( name_list ) == 0 or len( value_list ) == 0:
+        report( f'No changes to send to module', error = True, always = True )
+        return
+    if len( name_list ) != len( value_list ):
+        report( f'Mismatch between number of metric names ({len( name_list )}) and values ({len( value_list )})', error = True, always = True )
+        return    
+    try:
+        #Construct the message
+        #payload = get_cmd_payload()
+        for i in range ( len( name_list ) ):
+            metric_name = name_list[i]
+            value       = value_list[i]
+        value = get_pwr(value)
 
+        # Add the metric to the payload
+        try:
+            add_metric_as_alias( payload, None, f'Inputs/Power Channel{tec_number + 1}',  MetricDataType.Float, value )
+        except ValueError:
+            report( f'Unrecognized metric: "{metric_name}"', error = True, always = True )
+            return False
 
+        # Send the message
+        #byte_array = bytearray( payload.SerializeToString() )
+        #client.publish( NODE_CMD_TOPIC, byte_array, 0, False )
+    except ValueError:
+        return False
+    return True
+            
+def get_pwr(value):
+    return get_float( value, 'Channel Power', MIN_TEC_VALUE, MAX_TEC_VALUE)
+
+def get_float( value, name, min_valid, max_valid ):
+    try:
+        value = float( value )
+    except ValueError:
+        report( f'Invalid {name}, must be a number or "random": "{value}"', error = True, always = True )
+        raise ValueError
+    if value < min_valid or value > max_valid:
+        report( f'{name} out of range {min_valid} to {max_valid}: {value}', error = True, always = True )
+        raise ValueError
+    return value
 
 app = QApplication( [] )
 main_window = QMainWindow()
@@ -1184,7 +1184,6 @@ if option_log:
 else:
     log_button.setText( 'Toggle Logging On' )
 
-
 # The Seebeck/ Thermistor button
 if (option_data):
     thermistor_button = QPushButton( 'Display Seebeck Voltage' )
@@ -1194,7 +1193,6 @@ else:
 thermistor_button.clicked.connect( data_button_handler )
 v_box_layout.addWidget( center_widget(thermistor_button) )
 
-
 # The TIC data and controls
 tec_controls = QWidget()
 tec_grid = QGridLayout()
@@ -1203,13 +1201,12 @@ v_box_layout.addWidget( tec_controls )
 
 # Node data
 tec_grid.addWidget( QLabel( 'TEC Channel' ), 0, 1 )
-tec_grid.addWidget( QLabel( 'Current Power' ), 0, 2 )
-tec_grid.addWidget( QLabel( '            New Power' ), 0, 3 )
+tec_grid.addWidget( QLabel( '   Current Power' ), 0, 2 )
+tec_grid.addWidget( QLabel( '   New Power' ), 0, 3 )
 tec_grid.addWidget( QLabel( 'Direction' ),   0, 4 )
 thermistor_label = QLabel('Temp')
-
 tec_grid.addWidget( thermistor_label, 0, 5 )
-tec_grid.addWidget( QLabel( 'Timestamp' ),   0, 6 )
+#tec_grid.addWidget( QLabel( 'Timestamp' ),   0, 6 )
 
 tec_widgets = []
 for tec in range( NUM_TEC ):
@@ -1218,10 +1215,9 @@ for tec in range( NUM_TEC ):
 # The row labels
 tec_widgets[ 0 ].set_labels( tec_grid, 0, 0 )
 
-
 # Set TEC button
 set_TEC_button = QPushButton( 'Set TEC(s)' )
-set_TEC_button.clicked.connect( set_TEC_button_handler )
+set_TEC_button.clicked.connect( set_TEC_button_handler2 )
 tec_grid.addWidget( set_TEC_button,           13, 3 )
 
 #v_box_layout.addWidget( center_widget( set_TEC_controls ) )
@@ -1264,7 +1260,7 @@ set_cal_button.clicked.connect( cal_button_handler )
 set_cal_layout.addWidget( set_cal_button,           3, 3 )
 v_box_layout.addWidget( center_widget( set_cal_controls ) )
 
-
+'''
 # The diagnostic text view
 diagnostic_text = QPlainTextEdit()
 diagnostic_text.setReadOnly( True )
@@ -1273,7 +1269,7 @@ normal_format = diagnostic_text.currentCharFormat()
 error_format = QTextCharFormat()
 error_format.setForeground( Qt.red )
 v_box_layout.addWidget( diagnostic_text )
-
+'''
 gui_controls_created = True
 
 # Run the GUI

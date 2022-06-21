@@ -61,7 +61,6 @@ void ThermoElectricController::setPwm( float power ) {
   //Serial.print("Set PWM Power: ");Serial.println(power);
   float scaled_power = fabs(power)/100 * (100-minPercent) + minPercent ;
   float tmp = (float) ((scaled_power * 255.0)/100.0 + 0.5);// convert to 0-255 )
-  Serial.print("Analog write:"); Serial.println(tmp);
   analogWrite( pwmPin,tmp); //
 }
 

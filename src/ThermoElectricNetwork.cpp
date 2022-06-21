@@ -64,7 +64,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #define MQTT_BROKER1_PORT 1884
 
 //NTP server address
-#define NTP_IP  {169, 254, 39, 226}
+#define NTP_IP  {169,254,141,48}
 
 #else
   #error A network configuration must be defined
@@ -202,7 +202,7 @@ static MetricSpec NodeMetrics[] = {
     {"Inputs/Power Channel7",                     NMA_Channel7_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[6],         false, 0},
     {"Inputs/Power Channel8",                     NMA_Channel8_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[7],         false, 0},
     {"Inputs/Power Channel9",                     NMA_Channel9_pwr,           true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[8],         false, 0},
-    {"Inputs/Power Channel10",                    NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[9],        false, 0},
+    {"Inputs/Power Channel10",                    NMA_Channel10_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[9],         false, 0},
     {"Inputs/Power Channel11",                    NMA_Channel11_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[10],        false, 0},
     {"Inputs/Power Channel12",                    NMA_Channel12_pwr,          true, METRIC_DATA_TYPE_FLOAT,      &m_Channel_pwr[11],        false, 0},
     {"Outputs/Direction Channel1",                NMA_Channel1_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[0],         false, 0},
@@ -214,9 +214,9 @@ static MetricSpec NodeMetrics[] = {
     {"Outputs/Direction Channel7",                NMA_Channel7_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[6],         false, 0},
     {"Outputs/Direction Channel8",                NMA_Channel8_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[7],         false, 0},
     {"Outputs/Direction Channel9",                NMA_Channel9_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[8],         false, 0},
-    {"Outputs/Direction Channel10",               NMA_Channel10_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[9],        false, 0},
+    {"Outputs/Direction Channel10",               NMA_Channel10_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[9],         false, 0},
     {"Outputs/Direction Channel11",               NMA_Channel11_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[10],        false, 0},    
-    {"Outputs/Direction Channel12",               NMA_Channel12_dir,           false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[11],         false, 0},
+    {"Outputs/Direction Channel12",               NMA_Channel12_dir,          false, METRIC_DATA_TYPE_BOOLEAN,   &m_Channel_dir[11],        false, 0},
     {"Outputs/Data Channel1",                     NMA_Channel1_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[0],        false, 0},
     {"Outputs/Data Channel2",                     NMA_Channel2_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[1],        false, 0},
     {"Outputs/Data Channel3",                     NMA_Channel3_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[2],        false, 0},
@@ -226,9 +226,9 @@ static MetricSpec NodeMetrics[] = {
     {"Outputs/Data Channel7",                     NMA_Channel7_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[6],        false, 0},
     {"Outputs/Data Channel8",                     NMA_Channel8_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[7],        false, 0},
     {"Outputs/Data Channel9",                     NMA_Channel9_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[8],        false, 0},
-    {"Outputs/Data Channel10",                    NMA_Channel10_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[9],       false, 0},
+    {"Outputs/Data Channel10",                    NMA_Channel10_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[9],        false, 0},
     {"Outputs/Data Channel11",                    NMA_Channel11_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[10],       false, 0},    
-    {"Outputs/Data Channel12",                    NMA_Channel12_data,          false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[11],        false, 0},
+    {"Outputs/Data Channel12",                    NMA_Channel12_data,         false, METRIC_DATA_TYPE_FLOAT,     &m_Channel_data[11],       false, 0},
 };
 
 //Verify validity of this function
