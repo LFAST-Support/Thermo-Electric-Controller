@@ -526,8 +526,8 @@ def display_metrics( topic, payload, save_to_log ):
                 show_data_on_command_line( payload )
         else:
             show_data_on_GUI(metric)
-        if save_to_log:
-            log_data_to_CSV( payload.timestamp, topic )
+    if save_to_log:
+        log_data_to_CSV( payload.timestamp, topic )
 
 def show_data_on_command_line( payload ):
     global option_data
@@ -853,6 +853,9 @@ def log_button_handler():
     else:
         report( 'Logging is off', always = True )
         log_button.setText( 'Toggle Logging On' )
+
+def set_TEC_button_handler():
+    set_channel( 'all', '0' )
 
 def set_TEC_button_handler2():
     payload = get_cmd_payload()
@@ -1219,6 +1222,11 @@ tec_widgets[ 0 ].set_labels( tec_grid, 0, 0 )
 set_TEC_button = QPushButton( 'Set TEC(s)' )
 set_TEC_button.clicked.connect( set_TEC_button_handler2 )
 tec_grid.addWidget( set_TEC_button,           13, 3 )
+
+# All Off button
+all_off_button = QPushButton( 'All Off' )
+all_off_button.clicked.connect( set_TEC_button_handler )
+tec_grid.addWidget( all_off_button,           13, 4 )
 
 #v_box_layout.addWidget( center_widget( set_TEC_controls ) )
 
